@@ -65,15 +65,54 @@ class UserProfile(models.Model):
 
 class HealthLog(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='health_logs')
-    date = models.DateField(auto_now_add=True)
+    date = models.DateField()
     weight_kg = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     systolic_bp = models.IntegerField(null=True, blank=True)
     diastolic_bp = models.IntegerField(null=True, blank=True)
     heart_rate_bpm = models.IntegerField(null=True, blank=True)
-    
+    blood_sugar_mg = models.DecimalField(max_digits=5, decimal_places=1, null=True, blank=True)
+    sleep_hours = models.DecimalField(max_digits=3, decimal_places=1, null=True, blank=True)
+    water_intake_liters = models.DecimalField(max_digits=3, decimal_places=1, null=True, blank=True)
+    step_count = models.IntegerField(null=True, blank=True)
+
     class Meta:
         db_table = 'health_logs'
-        ordering = ['-date'] # Newest logs first
+        ordering = ['-date']
+        unique_together = ('user', 'date')
 
     def __str__(self):
         return f"Log for {self.user.email} on {self.date}"
+
+
+class HealthGoal(models.Model):
+    METRIC_CHOICES = [
+        ('step_count', 'Step Count'),
+        ('water_intake', 'Water Intake (Liters)'),
+        ('sleep_hours', 'Sleep (Hours)'),
+        ('weight_kg', 'Weight (kg)'),
+        ('custom', 'Custom'),
+    ]
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='health_goals')
+    title = models.CharField(max_length=255)
+    metric_type = models.CharField(max_length=50, choices=METRIC_CHOICES, default='custom')
+    target_value = models.DecimalField(max_digits=10, decimal_places=2)
+    unit = models.CharField(max_length=50, blank=True)
+    color = models.CharField(max_length=50, default='blue')  # e.g. blue, green, purple, amber
+    icon = models.CharField(max_length=50, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'health_goals'
+        ordering = ['-created_at']
+
+
+class GoalProgress(models.Model):
+    goal = models.ForeignKey(HealthGoal, on_delete=models.CASCADE, related_name='progress_logs')
+    date = models.DateField()
+    current_value = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        db_table = 'goal_progress'
+        unique_together = ('goal', 'date')
+        ordering = ['-date']

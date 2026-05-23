@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import Sidebar from '../components/Sidebar';
@@ -9,10 +10,85 @@ import {
     AreaChart, Area, LineChart, Line,
     XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { Pill, Activity, Footprints, Scale, Moon, Sun, Plus, HeartPulse, ShieldAlert, LineChart as LineChartIcon, TrendingDown, Loader } from 'lucide-react';
+import { Pill, Activity, Footprints, Scale, Moon, Sun, Plus, HeartPulse, ShieldAlert, LineChart as LineChartIcon, TrendingDown, Loader, User, X, Save, Target } from 'lucide-react';
 import './DashboardPage.css';
 
 const API_BASE = process.env.REACT_APP_API_BASE;
+
+function ProfileModal({ isOpen, onClose, currentProfile, onSave }) {
+    const [height, setHeight] = useState(currentProfile?.height_cm || '');
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        if (isOpen) setHeight(currentProfile?.height_cm || '');
+    }, [isOpen, currentProfile]);
+
+    if (!isOpen) return null;
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setSaving(true);
+        try {
+            const res = await fetch(`${API_BASE}/profile/health/`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${localStorage.getItem('access_token')}`
+                },
+                body: JSON.stringify({ height_cm: height ? parseFloat(height) : null })
+            });
+            if (res.ok) {
+                onSave();
+            } else {
+                alert('Failed to update profile');
+            }
+        } catch (err) {
+            alert('Network error');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+        }}>
+            <div style={{
+                background: 'var(--card-bg)', borderRadius: 16, padding: 24, width: '100%', maxWidth: 400,
+                border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)'
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
+                    <h2 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-primary)' }}>Edit Profile</h2>
+                    <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}><X size={20} /></button>
+                </div>
+                <form onSubmit={handleSubmit}>
+                    <div style={{ marginBottom: 20 }}>
+                        <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 8 }}>Height (cm)</label>
+                        <input
+                            type="number"
+                            value={height}
+                            onChange={(e) => setHeight(e.target.value)}
+                            placeholder="e.g. 175"
+                            style={{
+                                width: '100%', padding: '10px 14px', borderRadius: 8,
+                                border: '1px solid var(--border-color)', background: 'var(--bg-main)',
+                                color: 'var(--text-primary)', fontSize: '1rem', outline: 'none'
+                            }}
+                        />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                        <button type="button" onClick={onClose} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', cursor: 'pointer' }}>Cancel</button>
+                        <button type="submit" disabled={saving} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #1f73b7, #4caf50)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            {saving ? <Loader size={16} className="spin-animation" /> : <Save size={16} />}
+                            Save
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
 
 /* ---------- Mock Data (Alerts & Goals — to be replaced later) ---------- */
 const mockAlerts = [
@@ -22,12 +98,7 @@ const mockAlerts = [
     { severity: 'blue', message: 'Monthly health report is ready to download.', time: '2 days ago' },
 ];
 
-const mockGoals = [
-    { icon: <Pill size={20} />, label: 'Medication', current: 2, target: 3, unit: 'pills', color: 'blue' },
-    { icon: <Footprints size={20} />, label: 'Daily Steps', current: 7500, target: 10000, unit: 'steps', color: 'green' },
-    { icon: <Scale size={20} />, label: 'Target Weight', current: 71.2, target: 70, unit: 'kg', color: 'amber' },
-    { icon: <Moon size={20} />, label: 'Sleep', current: 6.5, target: 8, unit: 'hours', color: 'purple' },
-];
+
 
 /* ---------- Chart Tooltip ---------- */
 const ChartTooltip = ({ active, payload, label }) => {
@@ -91,10 +162,13 @@ function getFormattedDate() {
 function DashboardPage() {
     const { user } = useAuth();
     const { theme, toggleTheme } = useTheme();
+    const navigate = useNavigate();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [resizing, setResizing] = useState(false);
     const [dashData, setDashData] = useState(null);
+    const [goals, setGoals] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [profileModalOpen, setProfileModalOpen] = useState(false);
 
     const axisColor = theme === 'light' ? '#94a3b8' : '#4b5063';
 
@@ -105,26 +179,33 @@ function DashboardPage() {
     };
 
     // Fetch dashboard data from API
-    useEffect(() => {
-        const fetchDashboard = async () => {
-            const token = localStorage.getItem('access_token');
-            if (!token) return;
+    const fetchDashboardData = async () => {
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
 
-            try {
-                const res = await fetch(`${API_BASE}/dashboard/`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    setDashData(data);
-                }
-            } catch (err) {
-                console.error('Failed to load dashboard data:', err);
-            } finally {
-                setLoading(false);
+        try {
+            const [dashRes, goalsRes] = await Promise.all([
+                fetch(`${API_BASE}/dashboard/`, { headers: { Authorization: `Bearer ${token}` } }),
+                fetch(`${API_BASE}/goals/`, { headers: { Authorization: `Bearer ${token}` } })
+            ]);
+
+            if (dashRes.ok) {
+                const data = await dashRes.json();
+                setDashData(data);
             }
-        };
-        fetchDashboard();
+            if (goalsRes.ok) {
+                const goalsData = await goalsRes.json();
+                setGoals(goalsData);
+            }
+        } catch (err) {
+            console.error('Failed to load dashboard data:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchDashboardData();
     }, []);
 
     // Extract data safely
@@ -148,10 +229,28 @@ function DashboardPage() {
         kg: parseFloat(log.weight_kg),
     }));
 
-    // Compute weight Y-axis domain dynamically
     const weightValues = weightChartData.map(d => d.kg);
     const weightMin = weightValues.length ? Math.floor(Math.min(...weightValues) - 1) : 60;
     const weightMax = weightValues.length ? Math.ceil(Math.max(...weightValues) + 1) : 80;
+
+    const mappedGoals = goals.map(goal => {
+        let icon;
+        switch (goal.metric_type) {
+            case 'step_count': icon = <Footprints size={20} />; break;
+            case 'water_intake': icon = <Activity size={20} />; break; // imported Activity earlier
+            case 'sleep_hours': icon = <Moon size={20} />; break;
+            case 'weight_kg': icon = <Scale size={20} />; break;
+            default: icon = <Target size={20} />; break; // import Target
+        }
+        return {
+            label: goal.title,
+            current: goal.today_progress || 0,
+            target: goal.target_value,
+            unit: goal.unit,
+            color: goal.color,
+            icon: icon
+        };
+    });
 
     return (
         <div className="dashboard-layout">
@@ -177,7 +276,10 @@ function DashboardPage() {
                         >
                             {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
                         </button>
-                        <button className="dash-action-btn">
+                        <button className="dash-action-btn" onClick={() => setProfileModalOpen(true)}>
+                            <User size={18} style={{ marginRight: 6 }} /> Edit Profile
+                        </button>
+                        <button className="dash-action-btn" onClick={() => navigate('/health-log')}>
                             <Plus size={18} style={{ marginRight: 6 }} /> Log Today's Health
                         </button>
                     </div>
@@ -290,11 +392,21 @@ function DashboardPage() {
                         {/* Bottom Row */}
                         <div className="dash-bottom">
                             <AlertPanel alerts={mockAlerts} />
-                            <GoalTracker goals={mockGoals} />
+                            <GoalTracker goals={mappedGoals} />
                         </div>
                     </>
                 )}
             </main>
+            {/* Profile Modal */}
+            <ProfileModal
+                isOpen={profileModalOpen}
+                onClose={() => setProfileModalOpen(false)}
+                currentProfile={dashData?.profile}
+                onSave={() => {
+                    setProfileModalOpen(false);
+                    fetchDashboardData();
+                }}
+            />
         </div>
     );
 }

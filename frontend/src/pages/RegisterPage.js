@@ -95,15 +95,21 @@ function RegisterPage() {
                 setErrors({});
                 setTimeout(() => navigate('/login'), 1500);
             } else {
-                // Map backend field errors
-                if (typeof data === 'object') {
+                if (data.detail) {
+                    setSubmitStatus({ type: 'error', message: data.detail });
+                } else if (data.non_field_errors) {
+                    const msg = Array.isArray(data.non_field_errors) ? data.non_field_errors[0] : data.non_field_errors;
+                    setSubmitStatus({ type: 'error', message: msg });
+                } else if (typeof data === 'object') {
                     const backendErrors = {};
                     Object.entries(data).forEach(([key, value]) => {
                         backendErrors[key] = Array.isArray(value) ? value[0] : value;
                     });
                     setErrors(backendErrors);
+                    setSubmitStatus({ type: 'error', message: 'Please fix the errors below.' });
+                } else {
+                    setSubmitStatus({ type: 'error', message: 'Registration failed. Please try again.' });
                 }
-                setSubmitStatus({ type: 'error', message: 'Please fix the errors below.' });
             }
         } catch {
             setSubmitStatus({ type: 'error', message: 'Network error. Please try again later.' });

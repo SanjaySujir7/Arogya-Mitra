@@ -75,7 +75,12 @@ function LoginPage() {
                 login(data.access_token, data.refresh_token, data.user);
                 navigate('/dashboard');
             } else {
-                if (data.non_field_errors) {
+                if (data.detail) {
+                    // SimpleJWT uses 'detail' for authentication failures
+                    const isAuthError = data.detail.includes('No active account') || data.detail.includes('credentials');
+                    const msg = isAuthError ? 'Invalid email or password. Please try again.' : data.detail;
+                    setSubmitStatus({ type: 'error', message: msg });
+                } else if (data.non_field_errors) {
                     const backendErrors = {};
                     const errorObj = typeof data.non_field_errors[0] === 'object'
                         ? data.non_field_errors[0]
