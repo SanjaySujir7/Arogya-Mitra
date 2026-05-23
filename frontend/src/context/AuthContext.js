@@ -16,13 +16,13 @@ function AuthProvider({ children }) {
             const response = await fetch(`${API_BASE}/token/refresh/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ refresh_token: refreshToken }),
+                body: JSON.stringify({ refresh: refreshToken }),
             });
 
             if (response.ok) {
                 const data = await response.json();
-                localStorage.setItem('access_token', data.access_token);
-                return data.access_token;
+                localStorage.setItem('access_token', data.access);
+                return data.access;
             } else {
                 // Refresh token is invalid/expired — clear everything
                 localStorage.removeItem('access_token');
@@ -85,18 +85,52 @@ function AuthProvider({ children }) {
         setUser(userData);
     };
 
-    const logout = () => {
+    const logout = useCallback(() => {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         setUser(null);
-    };
+    }, []);
+
+    const apiFetch = useCallback(async (endpoint, options = {}) => {
+        let accessToken = localStorage.getItem('access_token');
+        const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
+
+        const getHeaders = (token) => {
+            const headers = { ...options.headers };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            return headers;
+        };
+
+        let response = await fetch(url, {
+            ...options,
+            headers: getHeaders(accessToken)
+        });
+
+        if (response.status === 401 && accessToken) {
+            accessToken = await refreshAccessToken();
+            if (accessToken) {
+                response = await fetch(url, {
+                    ...options,
+                    headers: getHeaders(accessToken)
+                });
+            } else {
+                logout();
+            }
+        }
+
+        return response;
+    }, [refreshAccessToken, logout]);
 
     const value = {
         user,
+        setUser,
         isAuthenticated: !!user,
         isLoading,
         login,
         logout,
+        apiFetch,
     };
 
     return (

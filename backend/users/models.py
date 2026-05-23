@@ -50,9 +50,17 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
 class UserProfile(models.Model):
+    GENDER_CHOICES = [
+        ('Male', 'Male'),
+        ('Female', 'Female'),
+        ('Other', 'Other'),
+    ]
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='health_profile')
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True, null=True)
     height_cm = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     blood_group = models.CharField(max_length=5, blank=True, null=True)
+    is_pregnant = models.BooleanField(default=False)
     current_health_score = models.IntegerField(default=100)
     current_risk_level = models.CharField(max_length=50, default="Low")
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Sidebar from '../components/Sidebar';
 import ConfirmModal from '../components/ConfirmModal';
+import { useAuth } from '../context/AuthContext';
 
 import {
     Target, Plus, X, Loader, Pencil, Trash2, CheckCircle, AlertCircle,
@@ -10,7 +11,6 @@ import './DashboardPage.css';
 import './HealthLogPage.css';
 import './GoalsPage.css';
 
-const API_BASE = process.env.REACT_APP_API_BASE;
 
 function getTodayString() {
     const d = new Date();
@@ -233,6 +233,7 @@ function GoalModal({ isOpen, onClose, onSubmit, initialData, isSubmitting }) {
 }
 
 function GoalsPage() {
+    const { apiFetch } = useAuth();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [resizing, setResizing] = useState(false);
     const [goals, setGoals] = useState([]);
@@ -262,9 +263,7 @@ function GoalsPage() {
 
     const fetchGoals = useCallback(async () => {
         try {
-            const res = await fetch(`${API_BASE}/goals/`, {
-                headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
-            });
+            const res = await apiFetch('/goals/');
             if (res.ok) {
                 const data = await res.json();
                 setGoals(data);
@@ -276,7 +275,7 @@ function GoalsPage() {
         } finally {
             setLoading(false);
         }
-    }, [showToast]);
+    }, [showToast, apiFetch]);
 
     useEffect(() => {
         fetchGoals();
@@ -285,13 +284,12 @@ function GoalsPage() {
     const handleSaveGoal = async (payload) => {
         setSubmitting(true);
         try {
-            const url = editGoal ? `${API_BASE}/goals/${editGoal.id}/` : `${API_BASE}/goals/`;
+            const url = editGoal ? `/goals/${editGoal.id}/` : '/goals/';
             const method = editGoal ? 'PUT' : 'POST';
-            const res = await fetch(url, {
+            const res = await apiFetch(url, {
                 method,
                 headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${localStorage.getItem('access_token')}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(payload),
             });
@@ -313,9 +311,8 @@ function GoalsPage() {
     const handleDelete = async () => {
         if (!deleteTarget) return;
         try {
-            const res = await fetch(`${API_BASE}/goals/${deleteTarget.id}/`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+            const res = await apiFetch(`/goals/${deleteTarget.id}/`, {
+                method: 'DELETE'
             });
             if (res.ok || res.status === 204) {
                 showToast('success', 'Goal deleted.');
@@ -332,13 +329,15 @@ function GoalsPage() {
     const handleLogProgress = async (goalId, value) => {
         setLoggingProgress(true);
         try {
-            const res = await fetch(`${API_BASE}/goals/${goalId}/progress/`, {
+            const res = await apiFetch(`/goals/${goalId}/progress/`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${localStorage.getItem('access_token')}`
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ date: getTodayString(), current_value: value }),
+                body: JSON.stringify({
+                    date: getTodayString(),
+                    current_value: value
+                })
             });
             if (res.ok) {
                 showToast('success', 'Progress logged!');

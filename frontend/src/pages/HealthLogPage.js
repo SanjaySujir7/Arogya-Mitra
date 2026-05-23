@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Sidebar from '../components/Sidebar';
+import { useAuth } from '../context/AuthContext';
 import ConfirmModal from '../components/ConfirmModal';
 import {
     Plus, X, Loader, Pencil, Trash2, ClipboardList,
@@ -8,8 +9,6 @@ import {
 } from 'lucide-react';
 import './DashboardPage.css';
 import './HealthLogPage.css';
-
-const API_BASE = process.env.REACT_APP_API_BASE;
 
 /* ---------- Helpers ---------- */
 function getTodayString() {
@@ -137,8 +136,13 @@ function LogFormModal({ isOpen, onClose, onSubmit, initialData, isSubmitting }) 
                 <form onSubmit={handleSubmit}>
                     <div className="hl-modal-body">
                         <div className="hl-form-grid">
+                            {/* --- DAILY HABITS --- */}
+                            
                             {/* Date */}
                             <div className="hl-form-group hl-form-group--full">
+                                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0 0 16px 0', gridColumn: '1 / -1' }}>
+                                    💡 <strong>Tip:</strong> You don't need to fill everything! Just log your daily habits, and only fill in medical tests (like Blood Sugar or BP) on the days you actually test them.
+                                </p>
                                 <label htmlFor="hl-date">Date</label>
                                 <input
                                     id="hl-date"
@@ -167,71 +171,6 @@ function LogFormModal({ isOpen, onClose, onSubmit, initialData, isSubmitting }) 
                                     onChange={handleChange}
                                     placeholder="e.g. 72.5"
                                     step="0.1"
-                                    min="0"
-                                />
-                            </div>
-
-                            {/* Heart Rate */}
-                            <div className="hl-form-group">
-                                <label htmlFor="hl-hr">
-                                    <Heart size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-                                    Heart Rate (BPM)
-                                </label>
-                                <input
-                                    id="hl-hr"
-                                    className="hl-form-input"
-                                    type="number"
-                                    name="heart_rate_bpm"
-                                    value={form.heart_rate_bpm}
-                                    onChange={handleChange}
-                                    placeholder="e.g. 72"
-                                    min="0"
-                                />
-                            </div>
-
-                            {/* Blood Pressure */}
-                            <div className="hl-form-group hl-form-group--full">
-                                <label>
-                                    <Activity size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-                                    Blood Pressure (mmHg)
-                                </label>
-                                <div className="hl-bp-row">
-                                    <input
-                                        className="hl-form-input"
-                                        type="number"
-                                        name="systolic_bp"
-                                        value={form.systolic_bp}
-                                        onChange={handleChange}
-                                        placeholder="Systolic"
-                                        min="0"
-                                    />
-                                    <span className="hl-bp-divider">/</span>
-                                    <input
-                                        className="hl-form-input"
-                                        type="number"
-                                        name="diastolic_bp"
-                                        value={form.diastolic_bp}
-                                        onChange={handleChange}
-                                        placeholder="Diastolic"
-                                        min="0"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Blood Sugar */}
-                            <div className="hl-form-group">
-                                <label htmlFor="hl-sugar">
-                                    <Droplets size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-                                    Blood Sugar (mg/dL)
-                                </label>
-                                <input
-                                    id="hl-sugar"
-                                    className="hl-form-input"
-                                    type="number"
-                                    name="blood_sugar_mg"
-                                    value={form.blood_sugar_mg}
-                                    onChange={handleChange}
-                                    placeholder="e.g. 110"
                                     min="0"
                                 />
                             </div>
@@ -292,6 +231,78 @@ function LogFormModal({ isOpen, onClose, onSubmit, initialData, isSubmitting }) 
                                     min="0"
                                 />
                             </div>
+
+                            {/* --- MEDICAL TESTS --- */}
+                            
+                            <div className="hl-form-group hl-form-group--full" style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid var(--border-color)' }}>
+                                <h4 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1rem' }}>Medical / Clinical Tests</h4>
+                                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '4px 0 0 0', fontWeight: 'normal' }}>Only log these fields if you actually performed the test today.</p>
+                            </div>
+
+                            {/* Heart Rate */}
+                            <div className="hl-form-group">
+                                <label htmlFor="hl-hr">
+                                    <Heart size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+                                    Heart Rate
+                                </label>
+                                <input
+                                    id="hl-hr"
+                                    className="hl-form-input"
+                                    type="number"
+                                    name="heart_rate_bpm"
+                                    value={form.heart_rate_bpm}
+                                    onChange={handleChange}
+                                    placeholder="e.g. 72"
+                                    min="0"
+                                />
+                            </div>
+                            
+                            {/* Blood Sugar */}
+                            <div className="hl-form-group">
+                                <label htmlFor="hl-sugar">
+                                    <Droplets size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+                                    Blood Sugar (mg/dL)
+                                </label>
+                                <input
+                                    id="hl-sugar"
+                                    className="hl-form-input"
+                                    type="number"
+                                    name="blood_sugar_mg"
+                                    value={form.blood_sugar_mg}
+                                    onChange={handleChange}
+                                    placeholder="e.g. 110"
+                                    min="0"
+                                />
+                            </div>
+
+                            {/* Blood Pressure */}
+                            <div className="hl-form-group hl-form-group--full">
+                                <label>
+                                    <Activity size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+                                    Blood Pressure (mmHg)
+                                </label>
+                                <div className="hl-bp-row">
+                                    <input
+                                        className="hl-form-input"
+                                        type="number"
+                                        name="systolic_bp"
+                                        value={form.systolic_bp}
+                                        onChange={handleChange}
+                                        placeholder="Systolic"
+                                        min="0"
+                                    />
+                                    <span className="hl-bp-divider">/</span>
+                                    <input
+                                        className="hl-form-input"
+                                        type="number"
+                                        name="diastolic_bp"
+                                        value={form.diastolic_bp}
+                                        onChange={handleChange}
+                                        placeholder="Diastolic"
+                                        min="0"
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -343,6 +354,7 @@ function BPCell({ systolic, diastolic }) {
 
 /* ========== Main Page Component ========== */
 function HealthLogPage() {
+    const { apiFetch } = useAuth();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [resizing, setResizing] = useState(false);
 
@@ -368,18 +380,10 @@ function HealthLogPage() {
         setTimeout(() => setToast(null), 3000);
     }, []);
 
-    /* Auth header */
-    const authHeaders = () => ({
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('access_token')}`,
-    });
-
     /* Fetch logs */
     const fetchLogs = useCallback(async () => {
         try {
-            const res = await fetch(`${API_BASE}/health-logs/`, {
-                headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
-            });
+            const res = await apiFetch('/health-logs/');
             if (res.ok) {
                 const data = await res.json();
                 // Sort newest first
@@ -394,7 +398,7 @@ function HealthLogPage() {
         } finally {
             setLoading(false);
         }
-    }, [showToast]);
+    }, [apiFetch, showToast]);
 
     useEffect(() => {
         fetchLogs();
@@ -404,14 +408,13 @@ function HealthLogPage() {
     const handleSubmit = async (payload) => {
         setSubmitting(true);
         try {
-            const url = editLog
-                ? `${API_BASE}/health-logs/${editLog.id}/`
-                : `${API_BASE}/health-logs/`;
+            const url = editLog ? `/health-logs/${editLog.id}/` : '/health-logs/';
             const method = editLog ? 'PUT' : 'POST';
-
-            const res = await fetch(url, {
+            const res = await apiFetch(url, {
                 method,
-                headers: authHeaders(),
+                headers: {
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify(payload),
             });
 
@@ -437,9 +440,8 @@ function HealthLogPage() {
     const handleDelete = async () => {
         if (!deleteTarget) return;
         try {
-            const res = await fetch(`${API_BASE}/health-logs/${deleteTarget.id}/`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
+            const res = await apiFetch(`/health-logs/${deleteTarget.id}/`, {
+                method: 'DELETE'
             });
             if (res.ok || res.status === 204) {
                 showToast('success', 'Log deleted.');

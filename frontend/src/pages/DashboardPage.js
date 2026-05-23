@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import OnboardingModal from '../components/OnboardingModal';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import Sidebar from '../components/Sidebar';
@@ -10,17 +11,27 @@ import {
     AreaChart, Area, LineChart, Line,
     XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { Pill, Activity, Footprints, Scale, Moon, Sun, Plus, HeartPulse, ShieldAlert, LineChart as LineChartIcon, TrendingDown, Loader, User, X, Save, Target } from 'lucide-react';
+import { Activity, Footprints, Scale, Moon, Sun, Plus, HeartPulse, ShieldAlert, LineChart as LineChartIcon, TrendingDown, Loader, User, X, Save, Target } from 'lucide-react';
 import './DashboardPage.css';
 
-const API_BASE = process.env.REACT_APP_API_BASE;
+function calculateAge(dateOfBirth) {
+    if (!dateOfBirth) return 0;
+    const dob = new Date(dateOfBirth);
+    const diff = Date.now() - dob.getTime();
+    const ageDate = new Date(diff);
+    return Math.abs(ageDate.getUTCFullYear() - 1970);
+}
 
-function ProfileModal({ isOpen, onClose, currentProfile, onSave }) {
-    const [height, setHeight] = useState(currentProfile?.height_cm || '');
+function ProfileModal({ isOpen, onClose, currentProfile, onSave, apiFetch, user }) {
+    const [height, setHeight] = useState('');
+    const [isPregnant, setIsPregnant] = useState(false);
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        if (isOpen) setHeight(currentProfile?.height_cm || '');
+        if (isOpen) {
+            setHeight(currentProfile?.height_cm || '');
+            setIsPregnant(currentProfile?.is_pregnant || false);
+        }
     }, [isOpen, currentProfile]);
 
     if (!isOpen) return null;
@@ -29,16 +40,19 @@ function ProfileModal({ isOpen, onClose, currentProfile, onSave }) {
         e.preventDefault();
         setSaving(true);
         try {
-            const res = await fetch(`${API_BASE}/profile/health/`, {
+            const res = await apiFetch('/profile/health/', {
                 method: 'PUT',
                 headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${localStorage.getItem('access_token')}`
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ height_cm: height ? parseFloat(height) : null })
+                body: JSON.stringify({ 
+                    height_cm: height ? parseFloat(height) : null,
+                    is_pregnant: isPregnant 
+                })
             });
             if (res.ok) {
-                onSave();
+                const data = await res.json();
+                onSave(data);
             } else {
                 alert('Failed to update profile');
             }
@@ -77,6 +91,21 @@ function ProfileModal({ isOpen, onClose, currentProfile, onSave }) {
                             }}
                         />
                     </div>
+                    
+                    {user?.health_profile?.gender === 'Female' && calculateAge(user?.date_of_birth) > 18 && (
+                        <div style={{ marginBottom: 20 }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem', color: 'var(--text-primary)', cursor: 'pointer' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={isPregnant}
+                                    onChange={(e) => setIsPregnant(e.target.checked)}
+                                    style={{ width: '18px', height: '18px', accentColor: '#1f73b7', cursor: 'pointer' }}
+                                />
+                                Currently Pregnant
+                            </label>
+                        </div>
+                    )}
+
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
                         <button type="button" onClick={onClose} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', cursor: 'pointer' }}>Cancel</button>
                         <button type="submit" disabled={saving} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #1f73b7, #4caf50)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -160,7 +189,7 @@ function getFormattedDate() {
 
 /* ---------- Dashboard Component ---------- */
 function DashboardPage() {
-    const { user } = useAuth();
+    const { user, setUser, apiFetch } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const navigate = useNavigate();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -169,6 +198,7 @@ function DashboardPage() {
     const [goals, setGoals] = useState([]);
     const [loading, setLoading] = useState(true);
     const [profileModalOpen, setProfileModalOpen] = useState(false);
+    const [onboardingOpen, setOnboardingOpen] = useState(false);
 
     const axisColor = theme === 'light' ? '#94a3b8' : '#4b5063';
 
@@ -179,19 +209,19 @@ function DashboardPage() {
     };
 
     // Fetch dashboard data from API
-    const fetchDashboardData = async () => {
-        const token = localStorage.getItem('access_token');
-        if (!token) return;
-
+    const fetchDashboardData = useCallback(async () => {
         try {
             const [dashRes, goalsRes] = await Promise.all([
-                fetch(`${API_BASE}/dashboard/`, { headers: { Authorization: `Bearer ${token}` } }),
-                fetch(`${API_BASE}/goals/`, { headers: { Authorization: `Bearer ${token}` } })
+                apiFetch('/dashboard/'),
+                apiFetch('/goals/')
             ]);
 
             if (dashRes.ok) {
                 const data = await dashRes.json();
                 setDashData(data);
+                if (data.profile && (!data.profile.gender || !data.profile.height_cm)) {
+                    setOnboardingOpen(true);
+                }
             }
             if (goalsRes.ok) {
                 const goalsData = await goalsRes.json();
@@ -202,11 +232,11 @@ function DashboardPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [apiFetch]);
 
     useEffect(() => {
         fetchDashboardData();
-    }, []);
+    }, [fetchDashboardData]);
 
     // Extract data safely
     const profile = dashData?.profile;
@@ -402,9 +432,22 @@ function DashboardPage() {
                 isOpen={profileModalOpen}
                 onClose={() => setProfileModalOpen(false)}
                 currentProfile={dashData?.profile}
-                onSave={() => {
+                apiFetch={apiFetch}
+                user={user}
+                onSave={(updatedUser) => {
                     setProfileModalOpen(false);
+                    if (updatedUser) setUser(updatedUser);
                     fetchDashboardData();
+                }}
+            />
+
+            <OnboardingModal
+                isOpen={onboardingOpen}
+                onClose={() => setOnboardingOpen(false)}
+                onComplete={(updatedUser) => { 
+                    setOnboardingOpen(false); 
+                    if (updatedUser) setUser(updatedUser);
+                    fetchDashboardData(); 
                 }}
             />
         </div>
@@ -412,4 +455,5 @@ function DashboardPage() {
 }
 
 export default DashboardPage;
+
 

@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, FileText, ActivitySquare, Target, BookOpen, User, LogOut, PanelLeftClose, PanelLeftOpen, Menu } from 'lucide-react';
+import { LayoutDashboard, FileText, ActivitySquare, Target, BookOpen, User, LogOut, PanelLeftClose, PanelLeftOpen, Menu, Brain } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 import './Sidebar.css';
 
 const navItems = [
     { icon: <LayoutDashboard size={20} />, label: 'Dashboard', path: '/dashboard' },
     { icon: <ActivitySquare size={20} />, label: 'Health Log', path: '/health-log' },
-    { icon: <FileText size={20} />, label: 'Predictions', path: '/predictions' },
+    { icon: <Brain size={20} />, label: 'Predictions', path: '/predictions' },
     { icon: <Target size={20} />, label: 'Goals', path: '/goals' },
     { icon: <BookOpen size={20} />, label: 'Reports', path: '/reports' },
     { icon: <User size={20} />, label: 'Profile', path: '/profile' },

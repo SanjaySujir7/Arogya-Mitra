@@ -61,12 +61,48 @@ def user_profile_view(request):
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
 def update_health_profile_view(request):
-    """Update current user's health profile (e.g. height)."""
+    """Update current user's general and health profile (e.g. height, name)."""
+    # Update base User fields if provided
+    user_updated = False
+    if 'first_name' in request.data:
+        request.user.first_name = request.data['first_name']
+        user_updated = True
+    if 'last_name' in request.data:
+        request.user.last_name = request.data['last_name']
+        user_updated = True
+    if 'date_of_birth' in request.data:
+        # Only allow setting DOB if it's currently NOT set
+        if not request.user.date_of_birth:
+            request.user.date_of_birth = request.data['date_of_birth']
+            user_updated = True
+
+    if user_updated:
+        request.user.save()
+
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
     serializer = HealthProfileSerializer(profile, data=request.data, partial=True)
+    
+    # We must pop out gender if user tries to pass it AND it's already set.
+    # If it's currently blank, allow them to set it.
+    if 'gender' in request.data and profile.gender:
+        if hasattr(request.data, '_mutable'):
+            request.data._mutable = True
+        if isinstance(request.data, dict) or hasattr(request.data, 'pop'):
+            request.data.pop('gender', None)
+
     if serializer.is_valid():
         serializer.save()
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        # If onboarding includes weight, save it to today's log
+        weight = request.data.get('weight_kg')
+        if weight:
+            from datetime import date
+            log, _ = HealthLog.objects.get_or_create(user=request.user, date=date.today())
+            log.weight_kg = weight
+            log.save()
+            
+        # Return fully updated profile
+        return Response(UserProfileSerializer(request.user).data, status=status.HTTP_200_OK)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
@@ -95,7 +131,7 @@ def dashboard_view(request):
     ).order_by('date')[:6]
 
     # Compute BMI if possible (using the most recent log that has a weight)
-    latest_weight_log = HealthLog.objects.filter(user=user, weight_kg__isnull=False).first()
+    latest_weight_log = HealthLog.objects.filter(user=user, weight_kg__isnull=False).order_by('-date').first()
     bmi = None
     if profile.height_cm and latest_weight_log and latest_weight_log.weight_kg:
         height_m = float(profile.height_cm) / 100

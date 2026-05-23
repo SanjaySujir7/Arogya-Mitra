@@ -5,11 +5,16 @@ from .models import User, UserProfile, HealthLog, HealthGoal, GoalProgress
 
 class UserProfileSerializer(serializers.ModelSerializer):
     """Reusable serializer for user profile data."""
+    health_profile = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'email']
+        fields = ['id', 'first_name', 'last_name', 'email', 'date_of_birth', 'health_profile']
         read_only_fields = fields
+
+    def get_health_profile(self, obj):
+        profile, _ = UserProfile.objects.get_or_create(user=obj)
+        return HealthProfileSerializer(profile).data
 
 
 class HealthProfileSerializer(serializers.ModelSerializer):
@@ -17,7 +22,7 @@ class HealthProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserProfile
-        fields = ['height_cm', 'blood_group', 'current_health_score', 'current_risk_level']
+        fields = ['gender', 'height_cm', 'blood_group', 'is_pregnant', 'current_health_score', 'current_risk_level']
         read_only_fields = ['current_health_score', 'current_risk_level']
 
 

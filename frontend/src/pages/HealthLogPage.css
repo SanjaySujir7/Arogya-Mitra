@@ -286,6 +286,13 @@
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.04);
 }
 
+.hl-modal form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
 .hl-modal-header {
     display: flex;
     align-items: center;
