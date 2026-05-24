@@ -240,7 +240,7 @@ function DashboardPage() {
 
     // Extract data safely
     const profile = dashData?.profile;
-    const latestLog = dashData?.latest_log;
+    const latestHr = dashData?.latest_hr;
     const bmi = dashData?.bmi;
     const bmiCat = getBmiCategory(bmi);
 
@@ -342,8 +342,8 @@ function DashboardPage() {
                             <StatCard
                                 icon={<HeartPulse size={24} />} iconColor="rose"
                                 label="Heart Rate"
-                                value={latestLog?.heart_rate_bpm ?? '--'}
-                                sub={latestLog?.heart_rate_bpm ? 'BPM • Resting' : 'No reading yet'}
+                                value={latestHr ?? '--'}
+                                sub={latestHr ? 'BPM • Resting' : 'No reading yet'}
                             />
                             <StatCard
                                 icon={<ShieldAlert size={24} />} iconColor="amber"

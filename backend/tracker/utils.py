@@ -41,26 +41,67 @@ def get_user_prediction_defaults(user):
     pregnancies = 1 if profile.is_pregnant else 0
     
     glucose_val = float(latest_glucose_log.blood_sugar_mg) if latest_glucose_log else None
-    bp_val = latest_bp_log.systolic_bp if latest_bp_log else None
+    
+    # Heart Disease Specifics
+    gender_map = {'Female': 1, 'Male': 2}
+    gender_val = gender_map.get(profile.gender)
+    
+    # Map glucose reading to categorical (1: Normal, 2: Above Normal, 3: High)
+    gluc_category = 1
+    if glucose_val:
+        if glucose_val >= 126:
+            gluc_category = 3
+        elif glucose_val >= 100:
+            gluc_category = 2
+
+    ap_hi_val = latest_bp_log.systolic_bp if latest_bp_log else None
+    ap_lo_val = latest_bp_log.diastolic_bp if latest_bp_log else None
 
     return {
+        # Diabetes fields
         'pregnancies': pregnancies,
         'glucose': glucose_val,
-        'blood_pressure': bp_val,
+        'blood_pressure': ap_hi_val,
         'skin_thickness': 29.0,   # dataset median default
         'insulin': 125.0,         # dataset median default
         'bmi': bmi,
         'diabetes_pedigree': 0.47,  # dataset median default
+        
+        # Shared fields
         'age': age,
+        
+        # Heart Disease fields
+        'gender': gender_val,
+        'height': profile.height_cm,
+        'weight': weight,
+        'ap_hi': ap_hi_val,
+        'ap_lo': ap_lo_val,
+        'cholesterol': profile.cholesterol,
+        'gluc': gluc_category if glucose_val else 1, # default normal if no log
+        'smoke': 1 if profile.smoke else 0,
+        'alco': 1 if profile.alco else 0,
+        'active': 1 if profile.active else 0,
+
         # Source info for the frontend UI badges
         '_sources': {
             'pregnancies': 'profile' if profile.is_pregnant else 'default',
             'glucose': 'latest_log' if glucose_val else None,
-            'blood_pressure': 'latest_log' if bp_val else None,
+            'blood_pressure': 'latest_log' if ap_hi_val else None,
             'skin_thickness': 'default',
             'insulin': 'default',
             'bmi': 'computed' if bmi else None,
             'diabetes_pedigree': 'default',
             'age': 'computed' if age else None,
+            
+            'gender': 'profile' if gender_val else None,
+            'height': 'profile' if profile.height_cm else None,
+            'weight': 'latest_log' if weight else None,
+            'ap_hi': 'latest_log' if ap_hi_val else None,
+            'ap_lo': 'latest_log' if ap_lo_val else None,
+            'cholesterol': 'profile',
+            'gluc': 'computed' if glucose_val else 'default',
+            'smoke': 'profile',
+            'alco': 'profile',
+            'active': 'profile',
         }
     }

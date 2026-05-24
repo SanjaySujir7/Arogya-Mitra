@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Sidebar from '../components/Sidebar';
 import {
-    Brain, Loader, ArrowRight, RotateCcw, Trash2,
+    Brain, Loader, ArrowRight, RotateCcw, Trash2, Heart,
     ShieldAlert, ShieldCheck, BarChart3, Activity, Clock, TrendingDown, TrendingUp
 } from 'lucide-react';
 import './PredictPage.css';
@@ -20,7 +20,7 @@ const FIELD_CONFIG = [
         label: 'Blood Pressure (Systolic)',
         placeholder: 'e.g. 80',
         hint: 'Systolic BP reading',
-        min: 0, max: 250, step: 1,
+        min: 20, max: 300, step: 1,
     },
     {
         key: 'bmi',
@@ -35,6 +35,7 @@ const FIELD_CONFIG = [
         placeholder: 'e.g. 35',
         hint: 'Your current age',
         min: 1, max: 120, step: 1,
+        isStatic: true
     },
     {
         key: 'pregnancies',
@@ -63,11 +64,26 @@ const FIELD_CONFIG = [
         placeholder: 'e.g. 0.47',
         hint: 'Diabetes pedigree function (0.0–2.5)',
         min: 0, max: 2.5, step: 0.01,
+        isStatic: true
     },
 ];
 
+const HEART_DISEASE_CONFIG = [
+    { key: 'age', label: 'Age (years)', placeholder: 'e.g. 35', hint: 'Your current age', min: 18, max: 120, step: 1, isStatic: true },
+    { key: 'gender', label: 'Gender', type: 'select', hint: 'Biological gender for prediction', options: [{value: '1', label: 'Female'}, {value: '2', label: 'Male'}], isStatic: true },
+    { key: 'height', label: 'Height (cm)', placeholder: 'e.g. 170', hint: 'Your height in cm', min: 50, max: 300, step: 1, isStatic: true },
+    { key: 'weight', label: 'Weight (kg)', placeholder: 'e.g. 70', hint: 'Your weight in kg', min: 10, max: 500, step: 0.1 },
+    { key: 'ap_hi', label: 'Systolic BP', placeholder: 'e.g. 120', hint: 'Systolic blood pressure', min: 50, max: 300, step: 1 },
+    { key: 'ap_lo', label: 'Diastolic BP', placeholder: 'e.g. 80', hint: 'Diastolic blood pressure', min: 20, max: 200, step: 1 },
+    { key: 'cholesterol', label: 'Cholesterol Level', type: 'select', hint: 'Your total cholesterol bracket', options: [{value: '1', label: 'Normal'}, {value: '2', label: 'Above Normal'}, {value: '3', label: 'High'}] },
+    { key: 'gluc', label: 'Glucose Category', type: 'select', hint: 'Your fasting blood sugar bracket', options: [{value: '1', label: 'Normal'}, {value: '2', label: 'Above Normal'}, {value: '3', label: 'High'}] },
+    { key: 'smoke', label: 'Smoker', type: 'select', hint: 'Do you currently smoke?', options: [{value: '0', label: 'No'}, {value: '1', label: 'Yes'}] },
+    { key: 'alco', label: 'Alcohol Intake', type: 'select', hint: 'Do you consume alcohol?', options: [{value: '0', label: 'No'}, {value: '1', label: 'Yes'}] },
+    { key: 'active', label: 'Physical Activity', type: 'select', hint: 'Are you physically active?', options: [{value: '0', label: 'No (Sedentary)'}, {value: '1', label: 'Yes (Active)'}] },
+];
+
 function PredictPage() {
-    const { apiFetch } = useAuth();
+    const { apiFetch, user } = useAuth();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [resizing, setResizing] = useState(false);
     const [formData, setFormData] = useState({});
@@ -78,6 +94,12 @@ function PredictPage() {
     const [error, setError] = useState(null);
     const [history, setHistory] = useState([]);
     const [showForm, setShowForm] = useState(false);
+    const [mode, setMode] = useState('diabetes');
+    const [showLifestylePrompt, setShowLifestylePrompt] = useState(false);
+    const [hasPromptedLifestyle, setHasPromptedLifestyle] = useState(
+        localStorage.getItem('hasPromptedLifestyle') === 'true'
+    );
+    const [savingLifestyle, setSavingLifestyle] = useState(false);
 
     const handleSidebarToggle = () => {
         setResizing(true);
@@ -130,20 +152,44 @@ function PredictPage() {
         setFormData(prev => ({ ...prev, [key]: value }));
     };
 
+    const handleSaveLifestyle = async () => {
+        setSavingLifestyle(true);
+        try {
+            const payload = {
+                smoke: parseInt(formData.smoke || '0', 10),
+                alco: parseInt(formData.alco || '0', 10),
+                active: parseInt(formData.active || '1', 10),
+                cholesterol: parseInt(formData.cholesterol || '1', 10)
+            };
+            const res = await apiFetch('/profile/health/', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                setShowLifestylePrompt(false);
+                fetchDefaults(); // Refreshes the form values and source badges
+            }
+        } catch (err) {
+            console.error('Failed to save lifestyle:', err);
+        } finally {
+            setSavingLifestyle(false);
+        }
+    };
+
     const executePrediction = async (dataToPredict) => {
         setPredicting(true);
         setResult(null);
         setError(null);
 
         try {
-            // Convert string values to numbers
-            const payload = {};
-            Object.keys(dataToPredict).forEach(k => {
-                const val = dataToPredict[k];
-                payload[k] = val !== '' ? parseFloat(val) : undefined;
-            });
+            const payload = { ...dataToPredict };
+            if (mode === 'diabetes' && user?.health_profile?.gender === 'Male') {
+                payload.pregnancies = '0';
+            }
 
-            const res = await apiFetch('/tracker/predict/diabetes/', {
+            const endpoint = mode === 'heart_disease' ? '/tracker/predict/heart-disease/' : '/tracker/predict/diabetes/';
+            const res = await apiFetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
@@ -223,9 +269,72 @@ function PredictPage() {
             <main className={`dashboard-main ${sidebarCollapsed ? 'dashboard-main--collapsed' : ''} ${resizing ? 'resizing' : ''}`}>
                 <div className="predict-page">
                     <div className="predict-header">
-                        <h1><Brain size={28} /> Disease Risk Prediction</h1>
-                        <p>Get an AI-powered assessment of your diabetes risk based on your health data. We auto-fill what we can from your latest health logs.</p>
+                        <h1>
+                            {mode === 'heart_disease' ? <Heart size={28} style={{color: '#ef4444'}} /> : <Brain size={28} style={{color: '#1f73b7'}} />} 
+                            {mode === 'heart_disease' ? ' Heart Disease' : ' Diabetes'} Risk Prediction
+                        </h1>
+                        <p>Get an AI-powered assessment of your {mode === 'heart_disease' ? 'heart disease' : 'diabetes'} risk based on your health data. We auto-fill what we can from your latest health logs.</p>
                     </div>
+
+                    <div className="predict-tabs">
+                        <button className={`predict-tab ${mode === 'diabetes' ? 'predict-tab--active' : ''}`} onClick={() => { setMode('diabetes'); setResult(null); setError(null); setShowForm(false); }}>
+                            Diabetes Prediction
+                        </button>
+                        <button className={`predict-tab ${mode === 'heart_disease' ? 'predict-tab--active' : ''}`} onClick={() => { 
+                            setMode('heart_disease'); 
+                            setResult(null); 
+                            setError(null); 
+                            setShowForm(false);
+                            if (!hasPromptedLifestyle) {
+                                setShowLifestylePrompt(true);
+                                setHasPromptedLifestyle(true);
+                                localStorage.setItem('hasPromptedLifestyle', 'true');
+                            }
+                        }}>
+                            Heart Disease Prediction
+                        </button>
+                    </div>
+
+                    {showLifestylePrompt && (
+                        <div className="lifestyle-modal-overlay">
+                            <div className="lifestyle-modal">
+                                <h2><Heart size={24} style={{color: '#ef4444'}} /> Lifestyle Factors Required</h2>
+                                <p>Heart disease risk strongly depends on your lifestyle. Please confirm your details below to permanently save them to your profile and get accurate predictions.</p>
+                                
+                                <div className="predict-form-grid" style={{marginBottom: 24}}>
+                                    <div className="predict-field" style={{flexDirection: 'row', alignItems: 'center', gap: 12}}>
+                                        <input type="checkbox" checked={String(formData.smoke) === '1'} onChange={(e) => handleChange('smoke', e.target.checked ? '1' : '0')} style={{width: 18, height: 18}} />
+                                        <label style={{margin: 0, textTransform: 'none', fontSize: '0.95rem'}}>I am a Smoker</label>
+                                    </div>
+                                    <div className="predict-field" style={{flexDirection: 'row', alignItems: 'center', gap: 12}}>
+                                        <input type="checkbox" checked={String(formData.alco) === '1'} onChange={(e) => handleChange('alco', e.target.checked ? '1' : '0')} style={{width: 18, height: 18}} />
+                                        <label style={{margin: 0, textTransform: 'none', fontSize: '0.95rem'}}>I consume alcohol</label>
+                                    </div>
+                                    <div className="predict-field" style={{flexDirection: 'row', alignItems: 'center', gap: 12}}>
+                                        <input type="checkbox" checked={String(formData.active) === '1'} onChange={(e) => handleChange('active', e.target.checked ? '1' : '0')} style={{width: 18, height: 18}} />
+                                        <label style={{margin: 0, textTransform: 'none', fontSize: '0.95rem'}}>I am physically active</label>
+                                    </div>
+                                    <div className="predict-field">
+                                        <label>Cholesterol Level</label>
+                                        <select value={formData.cholesterol || '1'} onChange={(e) => handleChange('cholesterol', e.target.value)} style={{padding: '11px 14px', borderRadius: '10px', border: '1px solid var(--border-color)', background: 'var(--bg-main)', color: 'var(--text-primary)', outline: 'none'}}>
+                                            <option value="1">Normal</option>
+                                            <option value="2">Above Normal</option>
+                                            <option value="3">High</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="lifestyle-modal-actions">
+                                    <button className="predict-btn-cancel" onClick={() => setShowLifestylePrompt(false)} disabled={savingLifestyle}>
+                                        Cancel
+                                    </button>
+                                    <button className="predict-btn" onClick={handleSaveLifestyle} disabled={savingLifestyle}>
+                                        {savingLifestyle ? 'Saving...' : 'Save & Continue'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {error && (
                         <div style={{ background: 'rgba(239, 68, 68, 0.1)', borderLeft: '4px solid #ef4444', padding: '12px 16px', color: '#fca5a5', marginBottom: '24px', borderRadius: '4px', fontSize: '0.95rem' }}>
@@ -268,25 +377,57 @@ function PredictPage() {
                                         <Activity size={20} /> Custom Health Metrics
                                     </div>
                                     <div className="predict-form-grid">
-                                        {FIELD_CONFIG.map(field => (
-                                            <div key={field.key} className="predict-field">
-                                                <label>
-                                                    {field.label}
-                                                    {getSourceBadge(field.key)}
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    placeholder={field.placeholder}
-                                                    value={formData[field.key] || ''}
-                                                    onChange={(e) => handleChange(field.key, e.target.value)}
-                                                    min={field.min}
-                                                    max={field.max}
-                                                    step={field.step}
-                                                    required
-                                                />
-                                                <p className="field-hint">{field.hint}</p>
-                                            </div>
-                                        ))}
+                                        {(mode === 'heart_disease' ? HEART_DISEASE_CONFIG : FIELD_CONFIG).map(field => {
+                                            const isPregnanciesMale = field.key === 'pregnancies' && user?.health_profile?.gender === 'Male';
+                                            const isStaticLocked = field.isStatic && sources[field.key];
+                                            const isDisabled = isPregnanciesMale || isStaticLocked;
+                                            const displayValue = isPregnanciesMale ? '0' : (formData[field.key] || '');
+
+                                            return (
+                                                <div key={field.key} className="predict-field">
+                                                    <label>
+                                                        {field.label}
+                                                        {getSourceBadge(field.key)}
+                                                    </label>
+                                                    {field.type === 'select' ? (
+                                                        <select
+                                                            value={displayValue}
+                                                            onChange={(e) => handleChange(field.key, e.target.value)}
+                                                            style={{
+                                                                width: '100%', padding: '10px 14px', borderRadius: '10px',
+                                                                border: '1px solid var(--border-color)', background: 'var(--bg-main)',
+                                                                color: 'var(--text-primary)', fontSize: '1rem', outline: 'none',
+                                                                opacity: isDisabled ? 0.6 : 1, cursor: isDisabled ? 'not-allowed' : 'auto'
+                                                            }}
+                                                            disabled={isDisabled}
+                                                            required
+                                                        >
+                                                            <option value="" disabled>Select {field.label}</option>
+                                                            {field.options.map(opt => (
+                                                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                                            ))}
+                                                        </select>
+                                                    ) : (
+                                                        <input
+                                                            type="number"
+                                                            placeholder={field.placeholder}
+                                                            value={displayValue}
+                                                            onChange={(e) => handleChange(field.key, e.target.value)}
+                                                            min={field.min}
+                                                            max={field.max}
+                                                            step={field.step}
+                                                            disabled={isDisabled}
+                                                            style={isDisabled ? {opacity: 0.6, cursor: 'not-allowed'} : {}}
+                                                            required
+                                                        />
+                                                    )}
+                                                    <p className="field-hint">
+                                                        {isPregnanciesMale ? 'Not applicable for males (locked at 0).' : 
+                                                         isStaticLocked ? 'Locked (Biological constant).' : field.hint}
+                                                    </p>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
 
@@ -326,12 +467,12 @@ function PredictPage() {
                                     <div className="gauge-bar-bg">
                                         <div
                                             className={`gauge-bar-fill ${isHigh ? 'gauge-bar-fill--high' : 'gauge-bar-fill--low'}`}
-                                            style={{ width: `${result.diabetes_probability}%` }}
+                                            style={{ width: `${mode === 'heart_disease' ? result.heart_disease_probability : result.diabetes_probability}%` }}
                                         />
                                     </div>
                                     <div className="gauge-labels">
                                         <span>0% Risk</span>
-                                        <span><strong>{result.diabetes_probability}%</strong></span>
+                                        <span><strong>{mode === 'heart_disease' ? result.heart_disease_probability : result.diabetes_probability}%</strong></span>
                                         <span>100% Risk</span>
                                     </div>
                                 </div>
@@ -401,9 +542,9 @@ function PredictPage() {
                                                 <div className="history-top-row">
                                                     <span className={`history-badge ${isEntryHigh ? 'history-badge--high' : 'history-badge--low'}`}>
                                                         {isEntryHigh ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                                                        {entry.prediction}
+                                                        {entry.prediction} ({entry.prediction_type === 'heart_disease' ? 'Heart Disease' : 'Diabetes'})
                                                     </span>
-                                                    <span className="history-prob">{entry.diabetes_probability}% probability</span>
+                                                    <span className="history-prob">{entry.prediction_type === 'heart_disease' ? entry.input_data?.heart_disease_probability || entry.confidence : entry.diabetes_probability || entry.confidence}% probability</span>
                                                 </div>
                                                 <span className="history-date">
                                                     {dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}

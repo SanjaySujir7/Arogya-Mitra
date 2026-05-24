@@ -3,8 +3,6 @@ import { useAuth } from '../context/AuthContext';
 import { Activity, ArrowRight, Loader } from 'lucide-react';
 import './OnboardingModal.css';
 
-const API_BASE = process.env.REACT_APP_API_BASE;
-
 function calculateAge(dateOfBirth) {
     if (!dateOfBirth) return 0;
     const dob = new Date(dateOfBirth);

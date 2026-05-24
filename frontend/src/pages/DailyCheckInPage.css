@@ -1,0 +1,238 @@
+.checkin-layout {
+    display: flex;
+    min-height: 100vh;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    transition: margin-left 0.3s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.checkin-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 24px 32px;
+    margin-left: 240px;
+    transition: margin-left 0.3s ease, padding 0.3s ease;
+    max-width: 1200px;
+}
+
+.checkin-main--collapsed {
+    margin-left: 72px;
+}
+
+.checkin-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+}
+
+.checkin-title h1 {
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.checkin-title p {
+    margin: 6px 0 0 0;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.checkin-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.checkin-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 32px;
+    width: 100%;
+    max-width: 600px;
+    box-shadow: var(--card-shadow);
+}
+
+.checkin-success {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.checkin-success h2 {
+    font-size: 1.8rem;
+    color: var(--text-primary);
+    margin-top: 20px;
+}
+
+.checkin-success p {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+}
+
+.checkin-section {
+    margin-bottom: 32px;
+}
+
+.checkin-section h3 {
+    margin: 0 0 16px 0;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+
+/* Emoji Picker */
+.emoji-picker {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.emoji-btn {
+    background: transparent;
+    border: 2px solid var(--border-color);
+    border-radius: 50px;
+    font-size: 2rem;
+    padding: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex: 1;
+}
+
+.emoji-btn:hover {
+    background: var(--hover-bg);
+    transform: scale(1.05);
+}
+
+.emoji-btn.selected {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+    transform: scale(1.1);
+}
+
+/* Star Picker */
+.star-picker {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.star-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #cbd5e1;
+    transition: all 0.2s ease;
+}
+
+.star-btn:hover, .star-btn.selected {
+    color: #eab308;
+    transform: scale(1.1);
+}
+
+/* Pill Buttons (Diet) */
+.pill-group {
+    display: flex;
+    gap: 12px;
+}
+
+.pill-btn {
+    flex: 1;
+    padding: 12px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.pill-btn:hover {
+    background: var(--hover-bg);
+}
+
+.pill-btn.selected {
+    background: #3b82f6;
+    color: #fff;
+    border-color: #3b82f6;
+}
+
+/* Symptoms Checkboxes */
+.symptoms-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+}
+
+.symptom-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+
+/* Toggles */
+.toggle-group {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+}
+
+.toggle-row span {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+/* Submit Button */
+.submit-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #1f73b7, #4caf50);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: opacity 0.2s;
+}
+
+.submit-btn:hover {
+    opacity: 0.9;
+}
+
+.submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+    .checkin-main {
+        margin-left: 0;
+        margin-bottom: 60px;
+        padding: 16px;
+    }
+}

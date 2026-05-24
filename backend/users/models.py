@@ -56,11 +56,24 @@ class UserProfile(models.Model):
         ('Other', 'Other'),
     ]
 
+    CHOLESTEROL_CHOICES = [
+        (1, 'Normal'),
+        (2, 'Above Normal'),
+        (3, 'High'),
+    ]
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='health_profile')
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True, null=True)
     height_cm = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     blood_group = models.CharField(max_length=5, blank=True, null=True)
     is_pregnant = models.BooleanField(default=False)
+    
+    # Lifestyle tracking
+    smoke = models.BooleanField(default=False)
+    alco = models.BooleanField(default=False)
+    active = models.BooleanField(default=True)
+    cholesterol = models.IntegerField(choices=CHOLESTEROL_CHOICES, default=1)
+
     current_health_score = models.IntegerField(default=100)
     current_risk_level = models.CharField(max_length=50, default="Low")
 
@@ -124,3 +137,22 @@ class GoalProgress(models.Model):
         db_table = 'goal_progress'
         unique_together = ('goal', 'date')
         ordering = ['-date']
+
+
+class DailyCheckIn(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='daily_checkins')
+    date = models.DateField(auto_now_add=True)
+    mood = models.IntegerField(choices=[(1, 'Terrible'), (2, 'Bad'), (3, 'Okay'), (4, 'Good'), (5, 'Great')])
+    sleep_quality = models.IntegerField(choices=[(1, 'Terrible'), (2, 'Bad'), (3, 'Okay'), (4, 'Good'), (5, 'Great')])
+    diet_quality = models.CharField(max_length=20, choices=[('Poor', 'Poor'), ('Average', 'Average'), ('Great', 'Great')])
+    water_goal = models.BooleanField(default=False)
+    exercise_goal = models.BooleanField(default=False)
+    symptoms = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        db_table = 'daily_checkins'
+        unique_together = ('user', 'date')
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"Check-in for {self.user.email} on {self.date}"

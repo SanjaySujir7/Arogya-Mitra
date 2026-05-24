@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password as django_validate_password
-from .models import User, UserProfile, HealthLog, HealthGoal, GoalProgress
+from .models import User, UserProfile, HealthLog, HealthGoal, GoalProgress, DailyCheckIn
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -22,7 +22,7 @@ class HealthProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserProfile
-        fields = ['gender', 'height_cm', 'blood_group', 'is_pregnant', 'current_health_score', 'current_risk_level']
+        fields = ['gender', 'height_cm', 'blood_group', 'is_pregnant', 'smoke', 'alco', 'active', 'cholesterol', 'current_health_score', 'current_risk_level']
         read_only_fields = ['current_health_score', 'current_risk_level']
 
 
@@ -60,6 +60,14 @@ class GoalProgressSerializer(serializers.ModelSerializer):
     class Meta:
         model = GoalProgress
         fields = ['id', 'goal', 'date', 'current_value']
+        read_only_fields = ['id']
+
+
+class DailyCheckInSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DailyCheckIn
+        fields = ['id', 'date', 'mood', 'sleep_quality', 'diet_quality', 'water_goal', 'exercise_goal', 'symptoms']
+        read_only_fields = ['id', 'date']
 
 
 class HealthGoalSerializer(serializers.ModelSerializer):

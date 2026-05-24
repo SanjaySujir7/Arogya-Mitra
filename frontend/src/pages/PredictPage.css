@@ -27,6 +27,37 @@
     line-height: 1.5;
 }
 
+/* ---------- Tabs ---------- */
+.predict-tabs {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 12px;
+}
+
+.predict-tab {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.predict-tab:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+.predict-tab--active {
+    background: rgba(31, 115, 183, 0.15);
+    color: #60a5fa;
+}
+
 /* ---------- Form Card ---------- */
 .predict-card {
     background: var(--card-bg);
@@ -619,8 +650,9 @@
     }
     
     .predict-btn-cancel {
-        margin-right: 0;
         width: 100%;
+        margin-right: 0;
+        margin-bottom: 12px;
     }
     
     .predict-btn {
@@ -638,4 +670,49 @@
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* ---------- Lifestyle Modal ---------- */
+.lifestyle-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.lifestyle-modal {
+    background: var(--bg-main);
+    border-radius: 16px;
+    padding: 32px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    border: 1px solid var(--border-color);
+}
+
+.lifestyle-modal h2 {
+    margin: 0 0 16px;
+    font-size: 1.4rem;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.lifestyle-modal p {
+    color: var(--text-secondary);
+    margin: 0 0 24px;
+    line-height: 1.5;
+}
+
+.lifestyle-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
 }

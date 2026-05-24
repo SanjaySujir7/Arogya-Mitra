@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, FileText, ActivitySquare, Target, BookOpen, User, LogOut, PanelLeftClose, PanelLeftOpen, Menu, Brain } from 'lucide-react';
+import { LayoutDashboard, ActivitySquare, Target, BookOpen, User, LogOut, PanelLeftClose, PanelLeftOpen, CheckSquare, Brain, Menu } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 import './Sidebar.css';
 
 const navItems = [
     { icon: <LayoutDashboard size={20} />, label: 'Dashboard', path: '/dashboard' },
     { icon: <ActivitySquare size={20} />, label: 'Health Log', path: '/health-log' },
+    { icon: <CheckSquare size={20} />, label: 'Daily Check-in', path: '/check-in', hasBadge: true },
     { icon: <Brain size={20} />, label: 'Predictions', path: '/predictions' },
     { icon: <Target size={20} />, label: 'Goals', path: '/goals' },
     { icon: <BookOpen size={20} />, label: 'Reports', path: '/reports' },
@@ -17,9 +18,27 @@ const navItems = [
 function Sidebar({ collapsed, onToggle }) {
     const location = useLocation();
     const navigate = useNavigate();
-    const { logout } = useAuth();
+    const { logout, apiFetch } = useAuth();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [logoutModalOpen, setLogoutModalOpen] = useState(false);
+    const [checkInDone, setCheckInDone] = useState(true);
+
+    useEffect(() => {
+        const checkStatus = async () => {
+            try {
+                const res = await apiFetch('/daily-checkin/today/');
+                if (res.ok) {
+                    const data = await res.json();
+                    setCheckInDone(data.completed);
+                }
+            } catch (err) {}
+        };
+        checkStatus();
+
+        const handleCompleted = () => setCheckInDone(true);
+        window.addEventListener('checkin-completed', handleCompleted);
+        return () => window.removeEventListener('checkin-completed', handleCompleted);
+    }, [apiFetch]);
 
     const handleLogoutClick = () => {
         setMobileMenuOpen(false);
@@ -63,7 +82,10 @@ function Sidebar({ collapsed, onToggle }) {
                             className={`sidebar-link ${location.pathname === item.path ? 'active' : ''}`}
                             title={collapsed ? item.label : ''}
                         >
-                            <span className="sidebar-icon">{item.icon}</span>
+                            <span className="sidebar-icon">
+                                {item.icon}
+                                {item.hasBadge && !checkInDone && <span className="notification-badge" />}
+                            </span>
                             {!collapsed && <span className="sidebar-label">{item.label}</span>}
                         </Link>
                     ))}

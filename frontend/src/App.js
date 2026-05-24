@@ -15,6 +15,7 @@ const HealthLogPage = lazy(() => import('./pages/HealthLogPage'));
 const GoalsPage = lazy(() => import('./pages/GoalsPage'));
 const PredictPage = lazy(() => import('./pages/PredictPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const DailyCheckInPage = lazy(() => import('./pages/DailyCheckInPage'));
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
               <Route path="/health-log" element={<ProtectedRoute><HealthLogPage /></ProtectedRoute>} />
               <Route path="/goals" element={<ProtectedRoute><GoalsPage /></ProtectedRoute>} />
               <Route path="/predictions" element={<ProtectedRoute><PredictPage /></ProtectedRoute>} />
+              <Route path="/check-in" element={<ProtectedRoute><DailyCheckInPage /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

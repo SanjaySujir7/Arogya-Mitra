@@ -39,6 +39,10 @@ function ProfilePage() {
                 height_cm: user.health_profile?.height_cm || '',
                 blood_group: user.health_profile?.blood_group || '',
                 is_pregnant: user.health_profile?.is_pregnant || false,
+                smoke: user.health_profile?.smoke || false,
+                alco: user.health_profile?.alco || false,
+                active: user.health_profile?.active ?? true,
+                cholesterol: user.health_profile?.cholesterol || 1,
             });
         }
     }, [user, isEditing]);
@@ -59,6 +63,8 @@ function ProfilePage() {
         const payload = { ...formData };
         if (payload.height_cm === '') payload.height_cm = null;
         else if (payload.height_cm !== null) payload.height_cm = parseFloat(payload.height_cm);
+        
+        payload.cholesterol = parseInt(payload.cholesterol, 10);
         
         if (payload.date_of_birth === '') payload.date_of_birth = null;
 
@@ -222,6 +228,61 @@ function ProfilePage() {
                                             </select>
                                         ) : (
                                             <div className="profile-value">{health.blood_group || 'Unknown'}</div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* --- Lifestyle Factors --- */}
+                            <div className="profile-section">
+                                <h2 className="profile-section-title">Lifestyle Factors</h2>
+                                <p className="profile-section-hint">Used by our AI to provide more accurate disease risk assessments.</p>
+                                <div className="profile-grid">
+                                    <div className="profile-field">
+                                        <label>Smoking Habit</label>
+                                        {isEditing ? (
+                                            <label className="profile-toggle">
+                                                <input type="checkbox" name="smoke" checked={formData.smoke} onChange={handleChange} />
+                                                <span>I am a Smoker</span>
+                                            </label>
+                                        ) : (
+                                            <div className="profile-value">{health.smoke ? 'Smoker' : 'Non-Smoker'}</div>
+                                        )}
+                                    </div>
+                                    <div className="profile-field">
+                                        <label>Alcohol Consumption</label>
+                                        {isEditing ? (
+                                            <label className="profile-toggle">
+                                                <input type="checkbox" name="alco" checked={formData.alco} onChange={handleChange} />
+                                                <span>I consume alcohol</span>
+                                            </label>
+                                        ) : (
+                                            <div className="profile-value">{health.alco ? 'Yes' : 'No'}</div>
+                                        )}
+                                    </div>
+                                    <div className="profile-field">
+                                        <label>Physical Activity</label>
+                                        {isEditing ? (
+                                            <label className="profile-toggle">
+                                                <input type="checkbox" name="active" checked={formData.active} onChange={handleChange} />
+                                                <span>I am physically active</span>
+                                            </label>
+                                        ) : (
+                                            <div className="profile-value">{health.active ? 'Active' : 'Sedentary'}</div>
+                                        )}
+                                    </div>
+                                    <div className="profile-field">
+                                        <label>Cholesterol Level</label>
+                                        {isEditing ? (
+                                            <select name="cholesterol" value={formData.cholesterol} onChange={handleChange}>
+                                                <option value={1}>Normal</option>
+                                                <option value={2}>Above Normal</option>
+                                                <option value={3}>High</option>
+                                            </select>
+                                        ) : (
+                                            <div className="profile-value">
+                                                {health.cholesterol === 3 ? 'High' : health.cholesterol === 2 ? 'Above Normal' : 'Normal'}
+                                            </div>
                                         )}
                                     </div>
                                 </div>

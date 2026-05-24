@@ -122,14 +122,13 @@ function LandingPage() {
                 <div className="hero-orb hero-orb--teal" />
 
                 <div className="hero-content">
-                    <div className="hero-badge">🏥 AI-Powered Health Companion</div>
-                    <h1>
+                    <h1 className="hero-title">
                         Your Health,{' '}
                         <span className="gradient-text">Intelligently Monitored</span>
                     </h1>
                     <p className="hero-subtitle">
-                        Track daily vitals, visualize health trends, and receive AI-driven risk
-                        predictions for diabetes and heart disease — all in one secure platform.
+                        Log daily vitals, set personalized health goals, and get advanced AI risk 
+                        predictions for diabetes and heart disease all in one secure platform.
                     </p>
                     <div className="hero-cta">
                         <Link to="/register" className="btn-primary">

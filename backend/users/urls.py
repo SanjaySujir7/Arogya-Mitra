@@ -14,5 +14,7 @@ urlpatterns = [
     path('goals/', views.health_goal_list_create_view, name='health-goal-list-create'),
     path('goals/<int:goal_id>/', views.health_goal_detail_update_delete_view, name='health-goal-detail'),
     path('goals/<int:goal_id>/progress/', views.goal_progress_create_view, name='goal-progress-create'),
+    path('daily-checkin/today/', views.daily_checkin_today_view, name='daily-checkin-today'),
+    path('daily-checkin/', views.daily_checkin_create_view, name='daily-checkin-create'),
 ]
 

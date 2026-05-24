@@ -1,4 +1,5 @@
 import logging
+import datetime
 import threading
 
 from django.shortcuts import get_object_or_404
@@ -8,9 +9,9 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .serializers import RegisterSerializer, UserProfileSerializer, HealthProfileSerializer, HealthLogSerializer, HealthLogCreateSerializer, CustomTokenObtainPairSerializer, HealthGoalSerializer, GoalProgressSerializer
+from .serializers import RegisterSerializer, UserProfileSerializer, HealthProfileSerializer, HealthLogSerializer, HealthLogCreateSerializer, CustomTokenObtainPairSerializer, HealthGoalSerializer, GoalProgressSerializer, DailyCheckInSerializer
 from .utils import send_welcome_email
-from .models import User, UserProfile, HealthLog, HealthGoal, GoalProgress
+from .models import User, UserProfile, HealthLog, HealthGoal, GoalProgress, DailyCheckIn
 
 logger = logging.getLogger(__name__)
 
@@ -137,10 +138,14 @@ def dashboard_view(request):
         height_m = float(profile.height_cm) / 100
         bmi = round(float(latest_weight_log.weight_kg) / (height_m ** 2), 1)
 
+    latest_hr_log = HealthLog.objects.filter(user=user, heart_rate_bpm__isnull=False).order_by('-date').first()
+    latest_hr = latest_hr_log.heart_rate_bpm if latest_hr_log else None
+
     return Response({
         'profile': HealthProfileSerializer(profile).data,
         'latest_log': HealthLogSerializer(latest_log).data if latest_log else None,
         'bmi': bmi,
+        'latest_hr': latest_hr,
         'bp_trend': HealthLogSerializer(bp_logs, many=True).data,
         'weight_trend': HealthLogSerializer(weight_logs, many=True).data,
     }, status=status.HTTP_200_OK)
@@ -269,4 +274,33 @@ def goal_progress_create_view(request, goal_id):
     serializer = GoalProgressSerializer(progress)
     status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
     return Response(serializer.data, status=status_code)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def daily_checkin_today_view(request):
+    """Check if the user has completed their daily check-in for today."""
+    today = datetime.date.today()
+    checkin = DailyCheckIn.objects.filter(user=request.user, date=today).first()
+    if checkin:
+        return Response({
+            'completed': True,
+            'data': DailyCheckInSerializer(checkin).data
+        })
+    return Response({'completed': False})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def daily_checkin_create_view(request):
+    """Submit or update the daily check-in for today."""
+    today = datetime.date.today()
+    checkin = DailyCheckIn.objects.filter(user=request.user, date=today).first()
+    
+    serializer = DailyCheckInSerializer(checkin, data=request.data) if checkin else DailyCheckInSerializer(data=request.data)
+    
+    if serializer.is_valid():
+        serializer.save(user=request.user)
+        return Response(serializer.data, status=status.HTTP_200_OK if checkin else status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
