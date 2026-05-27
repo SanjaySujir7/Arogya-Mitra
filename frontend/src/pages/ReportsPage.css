@@ -1,0 +1,310 @@
+/* ── Reports Page Styles ── */
+
+.reports-layout {
+    display: flex;
+    min-height: 100vh;
+    background: var(--bg);
+}
+
+.reports-main {
+    flex: 1;
+    margin-left: 260px;
+    padding: 32px 36px;
+    transition: margin-left 0.3s ease;
+}
+
+.reports-main--collapsed {
+    margin-left: 72px;
+}
+
+/* Header */
+.reports-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+}
+
+.reports-header h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.reports-header p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-top: 4px;
+}
+
+.btn-download-pdf {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+}
+
+.btn-download-pdf:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
+}
+
+.btn-download-pdf:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Summary Cards Row */
+.reports-summary-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.report-summary-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.report-summary-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+}
+
+.report-summary-label {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.report-summary-value {
+    font-size: 1.7rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.report-summary-sub {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* Section Card */
+.report-section {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: var(--card-shadow);
+}
+
+.report-section-title {
+    font-size: 1.1rem;
+    font-weight: 650;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Prediction History Table */
+.report-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    overflow: hidden;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.report-table thead {
+    background: var(--hover-bg);
+}
+
+.report-table th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.report-table td {
+    padding: 12px 16px;
+    font-size: 0.88rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.report-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.report-table tbody tr:hover {
+    background: var(--hover-bg);
+}
+
+.badge-risk {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.badge-risk--high {
+    background: rgba(248, 113, 113, 0.15);
+    color: #f87171;
+}
+
+.badge-risk--low {
+    background: rgba(74, 222, 128, 0.15);
+    color: #4ade80;
+}
+
+/* Check-in Stats Grid */
+.checkin-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.checkin-stat-card {
+    background: var(--hover-bg);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+}
+
+.checkin-stat-icon {
+    font-size: 2rem;
+    margin-bottom: 8px;
+}
+
+.checkin-stat-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.checkin-stat-label {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+/* Charts Row */
+.reports-charts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+/* Loading State */
+.reports-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+    color: var(--text-secondary);
+    gap: 10px;
+    font-size: 1rem;
+}
+
+/* Empty state */
+.report-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-secondary);
+}
+
+.report-empty-icon {
+    font-size: 3rem;
+    margin-bottom: 12px;
+}
+
+.report-empty p {
+    font-size: 0.9rem;
+}
+
+/* Animations */
+.report-fade-in {
+    animation: reportFadeIn 0.4s ease-out forwards;
+    opacity: 0;
+}
+
+@keyframes reportFadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .reports-main {
+        margin-left: 0;
+        padding: 20px 16px;
+        padding-bottom: 80px;
+    }
+
+    .reports-main--collapsed {
+        margin-left: 0;
+    }
+
+    .reports-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .reports-summary-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .reports-charts-row {
+        grid-template-columns: 1fr;
+    }
+
+    .report-table {
+        font-size: 0.82rem;
+    }
+
+    .report-table th,
+    .report-table td {
+        padding: 8px 10px;
+    }
+}
+
+@media (max-width: 500px) {
+    .reports-summary-row {
+        grid-template-columns: 1fr;
+    }
+}

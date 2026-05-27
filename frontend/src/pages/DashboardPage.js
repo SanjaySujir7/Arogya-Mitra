@@ -9,9 +9,9 @@ import AlertPanel from '../components/AlertPanel';
 import GoalTracker from '../components/GoalTracker';
 import {
     AreaChart, Area, LineChart, Line,
-    XAxis, YAxis, Tooltip, ResponsiveContainer,
+    XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, Tooltip as RechartsTooltip
 } from 'recharts';
-import { Activity, Footprints, Scale, Moon, Sun, Plus, HeartPulse, ShieldAlert, LineChart as LineChartIcon, TrendingDown, Loader, User, X, Save, Target } from 'lucide-react';
+import { Activity, Footprints, Scale, Moon, Sun, Plus, HeartPulse, ShieldAlert, LineChart as LineChartIcon, TrendingDown, Loader, User, X, Save, Target, Brain } from 'lucide-react';
 import './DashboardPage.css';
 
 function calculateAge(dateOfBirth) {
@@ -120,14 +120,6 @@ function ProfileModal({ isOpen, onClose, currentProfile, onSave, apiFetch, user 
 }
 
 /* ---------- Mock Data (Alerts & Goals — to be replaced later) ---------- */
-const mockAlerts = [
-    { severity: 'red', message: 'Blood pressure reading above normal range (130/85).', time: '2 hours ago' },
-    { severity: 'amber', message: 'Blood sugar level slightly elevated at 140 mg/dL.', time: '5 hours ago' },
-    { severity: 'green', message: 'Daily step goal achieved! 10,200 steps.', time: 'Yesterday' },
-    { severity: 'blue', message: 'Monthly health report is ready to download.', time: '2 days ago' },
-];
-
-
 
 /* ---------- Chart Tooltip ---------- */
 const ChartTooltip = ({ active, payload, label }) => {
@@ -419,9 +411,54 @@ function DashboardPage() {
                             </div>
                         </div>
 
+                        {/* Daily Check-in Trend Chart */}
+                        {dashData.checkin_trend && dashData.checkin_trend.length > 0 && (
+                            <div className="dash-chart-card" style={{ marginBottom: 24, padding: 24 }}>
+                                <div className="dash-chart-title" style={{ fontSize: '1.2rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                                    <Brain size={24} color="#8b5cf6" />
+                                    Mood & Sleep Trends
+                                </div>
+                                <div className="dash-chart-body">
+                                    <ResponsiveContainer width="100%" height={250}>
+                                        <LineChart data={dashData.checkin_trend}>
+                                            <defs>
+                                                <linearGradient id="colorMood" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#4ade80" stopOpacity={0.8}/>
+                                                    <stop offset="95%" stopColor="#4ade80" stopOpacity={0}/>
+                                                </linearGradient>
+                                                <linearGradient id="colorSleep" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#60a5fa" stopOpacity={0.8}/>
+                                                    <stop offset="95%" stopColor="#60a5fa" stopOpacity={0}/>
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
+                                            <XAxis 
+                                                dataKey="date" 
+                                                stroke="var(--text-secondary)" 
+                                                fontSize={12}
+                                                tickFormatter={(val) => {
+                                                    const d = new Date(val);
+                                                    return `${d.getMonth()+1}/${d.getDate()}`;
+                                                }}
+                                            />
+                                            <YAxis stroke="var(--text-secondary)" fontSize={12} domain={[0, 5]} ticks={[1, 2, 3, 4, 5]} />
+                                            <RechartsTooltip 
+                                                contentStyle={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-color)', borderRadius: '8px' }}
+                                                itemStyle={{ color: 'var(--text-primary)' }}
+                                                labelStyle={{ color: 'var(--text-secondary)' }}
+                                            />
+                                            <Legend />
+                                            <Line type="monotone" dataKey="mood" name="Mood (1-5)" stroke="#4ade80" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                                            <Line type="monotone" dataKey="sleep_quality" name="Sleep Quality (1-5)" stroke="#60a5fa" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Bottom Row */}
                         <div className="dash-bottom">
-                            <AlertPanel alerts={mockAlerts} />
+                            <AlertPanel alerts={dashData.alerts || []} />
                             <GoalTracker goals={mappedGoals} />
                         </div>
                     </>

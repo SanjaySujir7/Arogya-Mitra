@@ -33,25 +33,25 @@ function DailyCheckInPage() {
     });
 
     useEffect(() => {
-        fetchStatus();
-    }, []);
-
-    const fetchStatus = async () => {
-        try {
-            const res = await apiFetch('/daily-checkin/today/');
-            if (res.ok) {
-                const data = await res.json();
-                if (data.completed) {
-                    setCompleted(true);
-                    setFormData(data.data);
+        const fetchStatus = async () => {
+            try {
+                const res = await apiFetch('/daily-checkin/today/');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.completed) {
+                        setCompleted(true);
+                        setFormData(data.data);
+                    }
                 }
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
             }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
+        };
+
+        fetchStatus();
+    }, [apiFetch]);
 
     const handleSidebarToggle = () => {
         setResizing(true);

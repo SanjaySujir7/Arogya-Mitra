@@ -423,16 +423,14 @@ function GoalsPage() {
                                             />
                                         </div>
                                     </div>
-                                    {goal.metric_type === 'custom' && (
-                                        <div className="goal-footer">
-                                            <button
-                                                className="btn-log-progress"
-                                                onClick={() => { setLogGoalTarget(goal); setLogModalOpen(true); }}
-                                            >
-                                                <Activity size={16} /> Log Progress
-                                            </button>
-                                        </div>
-                                    )}
+                                    <div className="goal-footer">
+                                        <button
+                                            className="btn-log-progress"
+                                            onClick={() => { setLogGoalTarget(goal); setLogModalOpen(true); }}
+                                        >
+                                            <Activity size={16} /> Log Progress
+                                        </button>
+                                    </div>
                                 </div>
                             );
                         })}

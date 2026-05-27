@@ -2,6 +2,8 @@ import logging
 import datetime
 import threading
 
+from django.db.models import Avg, Count, Q
+
 from django.shortcuts import get_object_or_404
 
 from rest_framework import status
@@ -12,6 +14,9 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import RegisterSerializer, UserProfileSerializer, HealthProfileSerializer, HealthLogSerializer, HealthLogCreateSerializer, CustomTokenObtainPairSerializer, HealthGoalSerializer, GoalProgressSerializer, DailyCheckInSerializer
 from .utils import send_welcome_email
 from .models import User, UserProfile, HealthLog, HealthGoal, GoalProgress, DailyCheckIn
+from .alerts import generate_user_alerts
+from .report_pdf import generate_health_report_pdf
+from tracker.models import PredictionHistory
 
 logger = logging.getLogger(__name__)
 
@@ -141,6 +146,54 @@ def dashboard_view(request):
     latest_hr_log = HealthLog.objects.filter(user=user, heart_rate_bpm__isnull=False).order_by('-date').first()
     latest_hr = latest_hr_log.heart_rate_bpm if latest_hr_log else None
 
+    # Dynamic Health Score Calculation
+    score = 80
+    if profile.current_risk_level == 'High':
+        score -= 20
+        
+    latest_checkin = DailyCheckIn.objects.filter(user=user).order_by('-date').first()
+    if latest_checkin:
+        if latest_checkin.water_goal:
+            score += 5
+        if latest_checkin.exercise_goal:
+            score += 5
+            
+        if latest_checkin.diet_quality == 'Great':
+            score += 5
+        elif latest_checkin.diet_quality == 'Poor':
+            score -= 5
+            
+        if latest_checkin.sleep_quality == 5:
+            score += 5
+        elif latest_checkin.sleep_quality == 4:
+            score += 2
+        elif latest_checkin.sleep_quality == 2:
+            score -= 2
+        elif latest_checkin.sleep_quality == 1:
+            score -= 5
+            
+        if latest_checkin.mood == 5:
+            score += 5
+        elif latest_checkin.mood == 4:
+            score += 2
+        elif latest_checkin.mood == 2:
+            score -= 2
+        elif latest_checkin.mood == 1:
+            score -= 5
+
+    # Clamp score between 0 and 100
+    score = max(0, min(100, score))
+    if profile.current_health_score != score:
+        profile.current_health_score = score
+        profile.save()
+
+    # Daily Check-in Trend
+    checkin_trend_qs = DailyCheckIn.objects.filter(user=user).order_by('date')[:7]
+    checkin_trend_data = DailyCheckInSerializer(checkin_trend_qs, many=True).data
+
+    # Generate Alerts
+    alerts = generate_user_alerts(profile, latest_checkin, latest_log)
+
     return Response({
         'profile': HealthProfileSerializer(profile).data,
         'latest_log': HealthLogSerializer(latest_log).data if latest_log else None,
@@ -148,6 +201,8 @@ def dashboard_view(request):
         'latest_hr': latest_hr,
         'bp_trend': HealthLogSerializer(bp_logs, many=True).data,
         'weight_trend': HealthLogSerializer(weight_logs, many=True).data,
+        'checkin_trend': checkin_trend_data,
+        'alerts': alerts,
     }, status=status.HTTP_200_OK)
 
 
@@ -304,3 +359,208 @@ def daily_checkin_create_view(request):
         return Response(serializer.data, status=status.HTTP_200_OK if checkin else status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def reports_view(request):
+    """Return comprehensive health report data for the authenticated user."""
+    user = request.user
+    profile, _ = UserProfile.objects.get_or_create(user=user)
+
+    # ── Summary ──────────────────────────────────────────────────────
+    latest_weight_log = (
+        HealthLog.objects.filter(user=user, weight_kg__isnull=False)
+        .order_by('-date')
+        .first()
+    )
+    bmi = None
+    if profile.height_cm and latest_weight_log and latest_weight_log.weight_kg:
+        height_m = float(profile.height_cm) / 100
+        bmi = round(float(latest_weight_log.weight_kg) / (height_m ** 2), 1)
+
+    total_logs = HealthLog.objects.filter(user=user).count()
+    total_checkins = DailyCheckIn.objects.filter(user=user).count()
+
+    summary = {
+        'health_score': profile.current_health_score,
+        'risk_level': profile.current_risk_level,
+        'bmi': bmi,
+        'total_logs': total_logs,
+        'total_checkins': total_checkins,
+        'member_since': user.created_at.date().isoformat(),
+    }
+
+    # ── Prediction History (last 20) ─────────────────────────────────
+    predictions_qs = PredictionHistory.objects.filter(user=user)[:20]
+    prediction_history = [
+        {
+            'prediction_type': p.prediction_type,
+            'prediction': p.prediction,
+            'confidence': p.confidence,
+            'diabetes_probability': p.diabetes_probability,
+            'risk_factors': p.risk_factors,
+            'created_at': p.created_at.isoformat(),
+        }
+        for p in predictions_qs
+    ]
+
+    # ── Health Trends (last 30 logs, ascending) ──────────────────────
+    trend_logs = HealthLog.objects.filter(user=user).order_by('date')[:30]
+    health_trends = [
+        {
+            'date': log.date.isoformat(),
+            'systolic_bp': log.systolic_bp,
+            'diastolic_bp': log.diastolic_bp,
+            'heart_rate_bpm': log.heart_rate_bpm,
+            'weight_kg': float(log.weight_kg) if log.weight_kg else None,
+            'step_count': log.step_count,
+        }
+        for log in trend_logs
+    ]
+
+    # ── Check-in Summary (last 30 check-ins) ─────────────────────────
+    checkins_qs = DailyCheckIn.objects.filter(user=user).order_by('-date')[:30]
+    checkin_list = list(checkins_qs)
+    checkin_count = len(checkin_list)
+
+    if checkin_count:
+        avg_mood = round(
+            sum(c.mood for c in checkin_list) / checkin_count, 1
+        )
+        avg_sleep = round(
+            sum(c.sleep_quality for c in checkin_list) / checkin_count, 1
+        )
+        water_hits = sum(1 for c in checkin_list if c.water_goal)
+        exercise_hits = sum(1 for c in checkin_list if c.exercise_goal)
+        water_goal_hit_pct = round(water_hits / checkin_count * 100)
+        exercise_goal_hit_pct = round(exercise_hits / checkin_count * 100)
+    else:
+        avg_mood = None
+        avg_sleep = None
+        water_goal_hit_pct = 0
+        exercise_goal_hit_pct = 0
+
+    checkin_data = [
+        {
+            'date': c.date.isoformat(),
+            'mood': c.mood,
+            'sleep_quality': c.sleep_quality,
+            'diet_quality': c.diet_quality,
+            'water_goal': c.water_goal,
+            'exercise_goal': c.exercise_goal,
+            'symptoms': c.symptoms,
+        }
+        for c in checkin_list
+    ]
+
+    checkin_summary = {
+        'avg_mood': avg_mood,
+        'avg_sleep': avg_sleep,
+        'water_goal_hit_pct': water_goal_hit_pct,
+        'exercise_goal_hit_pct': exercise_goal_hit_pct,
+        'total_checkins': checkin_count,
+        'checkin_data': checkin_data,
+    }
+
+    return Response({
+        'summary': summary,
+        'prediction_history': prediction_history,
+        'health_trends': health_trends,
+        'checkin_summary': checkin_summary,
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def download_report_pdf_view(request):
+    """Generate and return a professional PDF health report."""
+    from django.http import HttpResponse
+
+    user = request.user
+    profile, _ = UserProfile.objects.get_or_create(user=user)
+
+    # Reuse the same data logic from reports_view
+    latest_weight_log = (
+        HealthLog.objects.filter(user=user, weight_kg__isnull=False)
+        .order_by('-date')
+        .first()
+    )
+    bmi = None
+    if profile.height_cm and latest_weight_log and latest_weight_log.weight_kg:
+        height_m = float(profile.height_cm) / 100
+        bmi = round(float(latest_weight_log.weight_kg) / (height_m ** 2), 1)
+
+    total_logs = HealthLog.objects.filter(user=user).count()
+    total_checkins = DailyCheckIn.objects.filter(user=user).count()
+
+    summary = {
+        'health_score': profile.current_health_score,
+        'risk_level': profile.current_risk_level,
+        'bmi': bmi,
+        'total_logs': total_logs,
+        'total_checkins': total_checkins,
+        'member_since': user.created_at.date().isoformat(),
+    }
+
+    predictions_qs = PredictionHistory.objects.filter(user=user)[:20]
+    prediction_history = [
+        {
+            'prediction_type': p.prediction_type,
+            'prediction': p.prediction,
+            'confidence': p.confidence,
+            'created_at': p.created_at.isoformat(),
+        }
+        for p in predictions_qs
+    ]
+
+    trend_logs = HealthLog.objects.filter(user=user).order_by('date')[:30]
+    health_trends = [
+        {
+            'date': log.date.isoformat(),
+            'systolic_bp': log.systolic_bp,
+            'diastolic_bp': log.diastolic_bp,
+            'heart_rate_bpm': log.heart_rate_bpm,
+            'weight_kg': float(log.weight_kg) if log.weight_kg else None,
+            'step_count': log.step_count,
+        }
+        for log in trend_logs
+    ]
+
+    checkins_qs = DailyCheckIn.objects.filter(user=user).order_by('-date')[:30]
+    checkin_list = list(checkins_qs)
+    checkin_count = len(checkin_list)
+
+    if checkin_count:
+        avg_mood = round(sum(c.mood for c in checkin_list) / checkin_count, 1)
+        avg_sleep = round(sum(c.sleep_quality for c in checkin_list) / checkin_count, 1)
+        water_pct = round(sum(1 for c in checkin_list if c.water_goal) / checkin_count * 100)
+        exercise_pct = round(sum(1 for c in checkin_list if c.exercise_goal) / checkin_count * 100)
+    else:
+        avg_mood = None
+        avg_sleep = None
+        water_pct = 0
+        exercise_pct = 0
+
+    checkin_summary = {
+        'avg_mood': avg_mood,
+        'avg_sleep': avg_sleep,
+        'water_goal_hit_pct': water_pct,
+        'exercise_goal_hit_pct': exercise_pct,
+        'total_checkins': checkin_count,
+    }
+
+    report_data = {
+        'summary': summary,
+        'prediction_history': prediction_history,
+        'health_trends': health_trends,
+        'checkin_summary': checkin_summary,
+    }
+
+    pdf_buffer = generate_health_report_pdf(user, report_data)
+
+    today = datetime.date.today().isoformat()
+    filename = f'Arogya-Mitra-Report-{today}.pdf'
+
+    response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response

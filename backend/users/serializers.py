@@ -85,18 +85,10 @@ class HealthGoalSerializer(serializers.ModelSerializer):
         import datetime
         today = datetime.date.today()
         
-        if obj.metric_type != 'custom':
-            log = HealthLog.objects.filter(user=obj.user, date=today).first()
-            if log:
-                val = getattr(log, obj.metric_type, None)
-                if val is not None:
-                    return val
-            return 0
-        else:
-            progress = GoalProgress.objects.filter(goal=obj, date=today).first()
-            if progress:
-                return progress.current_value
-            return 0
+        progress = GoalProgress.objects.filter(goal=obj, date=today).first()
+        if progress:
+            return progress.current_value
+        return 0
 
 
 class RegisterSerializer(serializers.ModelSerializer):
