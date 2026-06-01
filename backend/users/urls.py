@@ -18,5 +18,8 @@ urlpatterns = [
     path('daily-checkin/', views.daily_checkin_create_view, name='daily-checkin-create'),
     path('reports/', views.reports_view, name='reports'),
     path('reports/download-pdf/', views.download_report_pdf_view, name='download-report-pdf'),
+    path('password-reset/request/', views.request_password_reset, name='password-reset-request'),
+    path('password-reset/verify-otp/', views.verify_password_reset_otp, name='password-reset-verify-otp'),
+    path('password-reset/confirm/', views.reset_password_with_token, name='password-reset-confirm'),
 ]
 

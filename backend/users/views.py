@@ -1,6 +1,8 @@
 import logging
 import datetime
 import threading
+from django.core.cache import cache
+from django.utils.crypto import get_random_string
 
 from django.db.models import Avg, Count, Q
 
@@ -12,7 +14,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import RegisterSerializer, UserProfileSerializer, HealthProfileSerializer, HealthLogSerializer, HealthLogCreateSerializer, CustomTokenObtainPairSerializer, HealthGoalSerializer, GoalProgressSerializer, DailyCheckInSerializer
-from .utils import send_welcome_email
+from .utils import send_welcome_email, send_password_reset_otp_email
 from .models import User, UserProfile, HealthLog, HealthGoal, GoalProgress, DailyCheckIn
 from .alerts import generate_user_alerts
 from .report_pdf import generate_health_report_pdf
@@ -564,3 +566,84 @@ def download_report_pdf_view(request):
     response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def request_password_reset(request):
+    """Generate and send OTP for password reset."""
+    email = request.data.get('email')
+    if not email:
+        return Response({'detail': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    user = User.objects.filter(email=email).first()
+    if user:
+        otp = get_random_string(length=6, allowed_chars='0123456789')
+        # Store in cache for 10 minutes (600 seconds)
+        cache.set(f'password_reset_otp_{email}', otp, timeout=600)
+        
+        # Send email asynchronously
+        threading.Thread(
+            target=send_password_reset_otp_email, 
+            args=(user, otp), 
+            daemon=True
+        ).start()
+        
+    # Always return success to prevent email enumeration
+    return Response({'message': 'If an account exists with this email, an OTP has been sent.'}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def verify_password_reset_otp(request):
+    """Verify OTP and generate a secure reset token."""
+    email = request.data.get('email')
+    otp = request.data.get('otp')
+    
+    if not email or not otp:
+        return Response({'detail': 'Email and OTP are required.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    cached_otp = cache.get(f'password_reset_otp_{email}')
+    
+    if not cached_otp or cached_otp != str(otp):
+        return Response({'detail': 'Invalid or expired OTP.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    # Generate a secure reset token
+    reset_token = get_random_string(length=32)
+    # Store token in cache for 5 minutes
+    cache.set(f'password_reset_token_{email}', reset_token, timeout=300)
+    
+    # Invalidate the OTP so it can't be reused
+    cache.delete(f'password_reset_otp_{email}')
+    
+    return Response({'reset_token': reset_token, 'message': 'OTP verified successfully.'}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def reset_password_with_token(request):
+    """Reset password using the secure reset token."""
+    email = request.data.get('email')
+    reset_token = request.data.get('reset_token')
+    new_password = request.data.get('new_password')
+    
+    if not all([email, reset_token, new_password]):
+        return Response({'detail': 'Email, reset token, and new password are required.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    cached_token = cache.get(f'password_reset_token_{email}')
+    
+    if not cached_token or cached_token != reset_token:
+        return Response({'detail': 'Invalid or expired reset token. Please request a new OTP.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    user = User.objects.filter(email=email).first()
+    if not user:
+        return Response({'detail': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+        
+    # Update password
+    user.set_password(new_password)
+    user.save()
+    
+    # Invalidate Token
+    cache.delete(f'password_reset_token_{email}')
+    
+    return Response({'message': 'Password has been reset successfully.'}, status=status.HTTP_200_OK)

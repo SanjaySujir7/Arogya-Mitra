@@ -10,6 +10,7 @@ import './App.css';
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const HealthLogPage = lazy(() => import('./pages/HealthLogPage'));
 const GoalsPage = lazy(() => import('./pages/GoalsPage'));
@@ -28,6 +29,7 @@ function App() {
               <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
               <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
               <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+              <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
               <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
               <Route path="/health-log" element={<ProtectedRoute><HealthLogPage /></ProtectedRoute>} />
               <Route path="/goals" element={<ProtectedRoute><GoalsPage /></ProtectedRoute>} />

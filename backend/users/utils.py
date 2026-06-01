@@ -133,3 +133,54 @@ def send_welcome_email(user):
         html_message=html_message,
         fail_silently=False,
     )
+
+def send_password_reset_otp_email(user, otp):
+    """Send an OTP email for password reset."""
+    subject = "Your Arogya Mitra Password Reset OTP 🔐"
+
+    plain_message = (
+        f"Hi {user.first_name},\n\n"
+        f"Your OTP for resetting your password is: {otp}\n\n"
+        "This OTP is valid for 10 minutes.\n"
+        "If you did not request this, please ignore this email.\n\n"
+        "Stay healthy,\n"
+        "Team Arogya Mitra"
+    )
+
+    html_message = f"""
+    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto;
+                background: linear-gradient(135deg, #0f1117 0%, #1a1d2e 100%); border-radius: 16px;
+                overflow: hidden; border: 1px solid rgba(255,255,255,0.06);">
+        <div style="background: linear-gradient(135deg, #eab308, #d97706); padding: 32px 24px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 700;">🔐 Password Reset</h1>
+        </div>
+        <div style="padding: 32px 24px; color: #c4c9d4;">
+            <h2 style="color: #f0f2f5; margin: 0 0 16px; font-size: 20px;">Hi {user.first_name},</h2>
+            <p style="line-height: 1.6; margin: 0 0 20px; font-size: 15px;">
+                We received a request to reset your password. Use the OTP below to proceed:
+            </p>
+            <div style="text-align: center; margin: 30px 0;">
+                <span style="background: rgba(255,255,255,0.1); border: 2px dashed #eab308; padding: 15px 30px; 
+                             font-size: 32px; font-weight: bold; color: #eab308; border-radius: 8px; letter-spacing: 5px;">
+                    {otp}
+                </span>
+            </div>
+            <p style="line-height: 1.6; font-size: 14px; color: #8b8fa3; text-align: center;">
+                This OTP is valid for <strong>10 minutes</strong>.<br/>
+                If you didn't request a password reset, you can safely ignore this email.
+            </p>
+        </div>
+        <div style="padding: 20px 24px; border-top: 1px solid rgba(255,255,255,0.06); text-align: center;">
+            <p style="color: #6b7280; font-size: 13px; margin: 0;">Stay healthy 💚 — Team Arogya Mitra</p>
+        </div>
+    </div>
+    """
+
+    send_mail(
+        subject=subject,
+        message=plain_message,
+        from_email=settings.EMAIL_HOST_USER,
+        recipient_list=[user.email],
+        html_message=html_message,
+        fail_silently=False,
+    )
