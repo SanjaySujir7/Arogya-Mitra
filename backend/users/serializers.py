@@ -46,14 +46,25 @@ class HealthLogSerializer(serializers.ModelSerializer):
 
 
 class HealthLogCreateSerializer(HealthLogSerializer):
-    """Serializer for creating a new health log with per-user date uniqueness."""
+    """Serializer for creating a new health log or merging into an existing one."""
 
-    def validate_date(self, value):
-        value = super().validate_date(value)
-        request = self.context.get('request')
-        if request and HealthLog.objects.filter(user=request.user, date=value).exists():
-            raise serializers.ValidationError("A health log already exists for this date.")
-        return value
+    class Meta(HealthLogSerializer.Meta):
+        validators = []  # Disable implicit UniqueTogetherValidator so we can merge data
+
+
+    def create(self, validated_data):
+        user = validated_data.pop('user')
+        date = validated_data.pop('date')
+        
+        log, created = HealthLog.objects.get_or_create(user=user, date=date)
+        
+        # Merge new data without overwriting existing data with nulls
+        for attr, value in validated_data.items():
+            if value is not None:
+                setattr(log, attr, value)
+                
+        log.save()
+        return log
 
 
 class GoalProgressSerializer(serializers.ModelSerializer):

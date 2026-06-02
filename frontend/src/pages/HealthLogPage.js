@@ -388,7 +388,23 @@ function HealthLogPage() {
                 const data = await res.json();
                 // Sort newest first
                 const sorted = Array.isArray(data) ? data.sort((a, b) => b.date.localeCompare(a.date)) : [];
-                setLogs(sorted);
+                
+                // Filter out "weight-only" initial baseline logs so they don't confuse users
+                const filtered = sorted.filter(log => {
+                    const hasWeight = log.weight_kg !== null && log.weight_kg !== undefined;
+                    const hasOther = 
+                        (log.systolic_bp !== null) ||
+                        (log.diastolic_bp !== null) ||
+                        (log.heart_rate_bpm !== null) ||
+                        (log.blood_sugar_mg !== null) ||
+                        (log.sleep_hours !== null) ||
+                        (log.water_intake_liters !== null) ||
+                        (log.step_count !== null);
+                    
+                    return !(hasWeight && !hasOther);
+                });
+
+                setLogs(filtered);
             } else {
                 showToast('error', 'Failed to load health logs.');
             }

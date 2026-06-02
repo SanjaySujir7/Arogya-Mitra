@@ -97,7 +97,7 @@ function PredictPage() {
     const [mode, setMode] = useState('diabetes');
     const [showLifestylePrompt, setShowLifestylePrompt] = useState(false);
     const [hasPromptedLifestyle, setHasPromptedLifestyle] = useState(
-        localStorage.getItem('hasPromptedLifestyle') === 'true'
+        localStorage.getItem('hasPromptedLifestyle_v2') === 'true'
     );
     const [savingLifestyle, setSavingLifestyle] = useState(false);
 
@@ -168,6 +168,8 @@ function PredictPage() {
             });
             if (res.ok) {
                 setShowLifestylePrompt(false);
+                setHasPromptedLifestyle(true);
+                localStorage.setItem('hasPromptedLifestyle_v2', 'true');
                 fetchDefaults(); // Refreshes the form values and source badges
             }
         } catch (err) {
@@ -287,8 +289,6 @@ function PredictPage() {
                             setShowForm(false);
                             if (!hasPromptedLifestyle) {
                                 setShowLifestylePrompt(true);
-                                setHasPromptedLifestyle(true);
-                                localStorage.setItem('hasPromptedLifestyle', 'true');
                             }
                         }}>
                             Heart Disease Prediction
