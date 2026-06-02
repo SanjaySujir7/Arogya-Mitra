@@ -34,6 +34,7 @@
     margin-bottom: 24px;
     border-bottom: 1px solid var(--border-color);
     padding-bottom: 12px;
+    flex-wrap: wrap;
 }
 
 .predict-tab {
@@ -658,6 +659,22 @@
     .predict-btn {
         width: 100%;
         justify-content: center;
+    }
+
+    .predict-header h1 {
+        font-size: 1.35rem;
+    }
+
+    .result-title {
+        font-size: 1.3rem;
+    }
+
+    .predict-page {
+        padding: 16px;
+    }
+
+    .predict-card {
+        padding: 20px;
     }
 }
 

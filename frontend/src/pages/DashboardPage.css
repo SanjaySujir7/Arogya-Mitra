@@ -135,7 +135,8 @@
 }
 
 @media (max-width: 768px) {
-    .dashboard-main {
+    .dashboard-main,
+    .dashboard-main--collapsed {
         margin-left: 0;
         padding: 20px 16px 88px;
     }

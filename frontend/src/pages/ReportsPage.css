@@ -132,8 +132,15 @@
 }
 
 /* Prediction History Table */
+.report-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 12px;
+}
+
 .report-table {
     width: 100%;
+    min-width: 500px;
     border-collapse: separate;
     border-spacing: 0;
     overflow: hidden;
@@ -300,6 +307,18 @@
     .report-table th,
     .report-table td {
         padding: 8px 10px;
+    }
+
+    .reports-header h1 {
+        font-size: 1.35rem;
+    }
+
+    .report-summary-value {
+        font-size: 1.3rem;
+    }
+
+    .checkin-stat-value {
+        font-size: 1.3rem;
     }
 }
 

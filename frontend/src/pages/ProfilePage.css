@@ -12,6 +12,7 @@
     margin-bottom: 40px;
     padding-bottom: 24px;
     border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap;
 }
 
 .profile-header-avatar {
@@ -128,6 +129,34 @@
     .profile-grid {
         grid-template-columns: 1fr;
     }
+
+    .profile-page {
+        padding: 16px;
+    }
+
+    .profile-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .profile-header-info h1 {
+        font-size: 1.5rem;
+    }
+
+    .profile-content {
+        padding: 20px;
+    }
+
+    .profile-actions {
+        flex-direction: column;
+    }
+
+    .profile-btn-cancel,
+    .profile-btn-save {
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 .profile-field {
@@ -211,6 +240,7 @@
     margin-top: 40px;
     padding-top: 24px;
     border-top: 1px solid var(--border-color);
+    flex-wrap: wrap;
 }
 
 .profile-btn-cancel {

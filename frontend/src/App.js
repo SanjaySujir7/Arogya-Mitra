@@ -5,6 +5,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import LoadingScreen from './components/LoadingScreen';
 import ProtectedRoute from './components/ProtectedRoute';
 import PublicRoute from './components/PublicRoute';
+import InstallPrompt from './components/InstallPrompt';
 import './App.css';
 
 const LandingPage = lazy(() => import('./pages/LandingPage'));
@@ -41,6 +42,7 @@ function App() {
             </Routes>
           </Suspense>
         </BrowserRouter>
+        <InstallPrompt />
       </ThemeProvider>
     </AuthProvider>
   );

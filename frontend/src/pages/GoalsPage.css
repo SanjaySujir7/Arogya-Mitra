@@ -3,6 +3,8 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
 }
 
 .goals-title-group h1 {
@@ -20,7 +22,7 @@
 
 .goals-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 24px;
     margin-bottom: 24px;
 }
@@ -310,4 +312,29 @@
 select.hl-form-input option {
     background: var(--bg-main);
     color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+    .goals-title-group h1 {
+        font-size: 1.35rem;
+    }
+
+    .goals-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .goal-card {
+        padding: 18px;
+    }
+
+    .goal-modal-body {
+        padding: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .goals-grid {
+        grid-template-columns: 1fr;
+    }
 }

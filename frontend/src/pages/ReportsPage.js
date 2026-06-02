@@ -190,6 +190,7 @@ function ReportsPage() {
                                     AI Prediction History
                                 </div>
                                 {data.prediction_history.length > 0 ? (
+                                    <div className="report-table-wrap">
                                     <table className="report-table">
                                         <thead>
                                             <tr>
@@ -214,6 +215,7 @@ function ReportsPage() {
                                             ))}
                                         </tbody>
                                     </table>
+                                    </div>
                                 ) : (
                                     <div className="report-empty">
                                         <p>No AI predictions yet. Visit the Predictions page to run your first analysis!</p>
